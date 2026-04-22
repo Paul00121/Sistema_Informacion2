@@ -189,15 +189,148 @@ public function crearSuscripcion(Request $request)
                 'plan' => 'required'
             ]);
 
+            // Yo normalizo el nombre del plan a minúsculas
             $planNombre = strtolower(trim($request->plan));
 
-            // Aceptar solo: gratis, basico, premium
-            if (!in_array($planNombre, ['gratis', 'basico', 'premium'])) {
+            // Yo acepto los nombres reales de la BD: free, basic, premium
+            if (!in_array($planNombre, ['free', 'basic', 'premium'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Plan inválido. Use: gratis, basico o premium'
+                    'message' => 'Plan inválido. Use: free, basic o premium'
                 ], 400);
             }
+
+            // Yo busco el plan por nombre EXACTO en la base de datos
+            $plan = DB::table('planes')
+                ->whereRaw('LOWER(nombre) = ?', [$planNombre])
+                ->first();
+
+            if (!$plan) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Plan no encontrado en la base de datos'
+                ], 404);
+            }
+
+            // Yo obtengo el cliente_ci del request
+            $clienteCi = $request->cliente_ci;
+            if (!$clienteCi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'cliente_ci es requerido'
+                ], 400);
+            }
+
+            // Yo verifico si el plan es gratuito (precio = 0)
+            // Si es gratis, yo creo la suscripción directamente SIN usar PayPal
+            if ($plan->precio == 0) {
+                DB::table('suscripciones')->insert([
+                    'cliente_ci' => $clienteCi,
+                    'plan_id' => $plan->id,
+                    'estado' => 'activa',
+                    'fecha_inicio' => now(),
+                    'fecha_fin' => now()->addDays($plan->duracion_dias)
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'tipo' => 'gratis',
+                    'message' => 'Plan gratuito activado'
+                ]);
+            }
+
+            // Yo determino el descuento según el plan
+            $descuento = 0;
+            if ($planNombre === 'basic') {
+                $descuento = 5;
+            } elseif ($planNombre === 'premium') {
+                $descuento = 20;
+            }
+
+            // Yo inicio la conexión con PayPal para planes de pago (basic, premium)
+            $clientId = 'AUPFXnzHKdf61oJkarbtIzErFoGW-dEBFWUS74h-WjbQ6JDtJ5yv85XL36u04d_Jn_4nKEgRPZjxsrHB';
+            $secret = 'EGusJHziEauS9yuXV4-WMK9qBX1RoUDjxrCf-3PWrJ-CJ-itFXXggtQwl7_NXmeN3PKzTSbh8e6jj06y';
+            $mode = env('PAYPAL_MODE', 'sandbox');
+
+            $baseUrl = $mode === 'sandbox'
+                ? 'https://api-m.sandbox.paypal.com'
+                : 'https://api-m.paypal.com';
+
+            // Yo obtengo el token de acceso de PayPal
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $baseUrl . '/v1/oauth2/token');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_USERPWD, $clientId . ':' . $secret);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, 'grant_type=client_credentials');
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Accept: application/json',
+                'Content-Type: application/x-www-form-urlencoded'
+            ]);
+
+            $response = curl_exec($ch);
+            curl_close($ch);
+
+            $tokenData = json_decode($response);
+            $accessToken = $tokenData->access_token ?? null;
+
+            if (!$accessToken) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de conexión con PayPal'
+                ], 500);
+            }
+
+            // Yo creo la suscripción en PayPal
+            $subData = [
+                'plan_id' => 'P-' . $plan->id,
+                'application_context' => [
+                    'return_url' => url('/cliente/index.html?suscripcion=exito'),
+                    'cancel_url' => url('/cliente/index.html?suscripcion=cancel')
+                ]
+            ];
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $baseUrl . '/v1/billing/subscriptions');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($subData));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $accessToken,
+                'Prefer: return=representation'
+            ]);
+
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            $subResponse = json_decode($response, true);
+
+            if ($httpCode === 201 || $httpCode === 200) {
+                return response()->json([
+                    'success' => true,
+                    'tipo' => 'pago',
+                    'descuento' => $descuento,
+                    'subscriptionId' => $subResponse['id'] ?? null,
+                    'approveUrl' => $subResponse['links'][0]['href'] ?? null
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear suscripción en PayPal'
+            ], 500);
+
+        } catch (\Exception $e) {
+            // Yo atrapo cualquier error y retorno JSON válido
+            return response()->json([
+                'success' => false,
+                'message' => 'Error interno del servidor'
+            ], 500);
+        }
+    }
+}
 
             // Buscar plan por nombre EXACTO
             $plan = DB::table('planes')

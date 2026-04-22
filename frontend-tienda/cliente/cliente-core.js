@@ -68,26 +68,29 @@ window.userDiscount = 0;
 async function loadUserDiscount() {
     if (!currentUser) return;
 
-    window.userDiscount = 0; // Resetear
+    // Yo reseteo el descuento a 0 cada vez que se llama esta función
+    window.userDiscount = 0;
 
     try {
+        // Yo obtengo las suscripciones del usuario actual
         const clienteId = currentUser?.cliente?.ci || currentUser?.id;
         const suscripciones = await api.get('/suscripciones?cliente_ci=' + clienteId);
         const activeSub = suscripciones.find(function(s) { return s.estado === 'activa'; });
 
         if (activeSub) {
+            // Yo determino el descuento según el nombre del plan en la BD
             const planName = (activeSub.plan_nombre || '').toLowerCase();
             if (planName.includes('premium')) {
                 window.userDiscount = 20;
-            } else if (planName.includes('basico') || planName.includes('basic')) {
+            } else if (planName.includes('basic')) {
                 window.userDiscount = 5;
-            } else if (planName.includes('gratis')) {
+            } else if (planName.includes('free')) {
                 window.userDiscount = 0;
             }
-            console.log("Descuento aplicado:", window.userDiscount + "%");
+            console.log("Yo apliqué descuento:", window.userDiscount + "%");
         }
     } catch(e) {
-        console.error("Error al cargar descuento:", e);
+        console.error("Yo atrapé un error al cargar el descuento:", e);
     }
 }
 
@@ -232,10 +235,11 @@ function renderProducts(productos, containerId) {
         html = '<div class="col-12"><p class="text-muted">No hay productos disponibles</p></div>';
     }
     productos.forEach(function(p) {
+        // Yo construyo la URL de la imagen del producto
         const imgUrl = getImageUrl(p.imagen, 'medium');
         const precioOriginal = p.precio;
 
-        // Calcular precio con descuento si existe
+        // Yo calculo el precio con descuento si el usuario tiene suscripción activa
         let precioFinal = precioOriginal;
         let priceHtml = '<div class="price">Bs ' + new Intl.NumberFormat('es-BO').format(precioOriginal) + '</div>';
 
@@ -626,7 +630,7 @@ function showToastMessage(message, type) {
 }
 
 function getImageUrl(imagen, size = 'thumb') {
-    // Placeholder según tamaño
+    // Yo defino los placeholders según el tamaño solicitado
     const placeholders = {
         'thumb': 'https://placehold.co/60x60?text=Sin+Imagen',
         'medium': 'https://placehold.co/200x200?text=Sin+Imagen',
@@ -634,20 +638,21 @@ function getImageUrl(imagen, size = 'thumb') {
     };
     const placeholder = placeholders[size] || placeholders['thumb'];
 
-    // Validar que imagen exista y sea string
+    // Yo valido que la imagen exista y sea un string válido
     if (!imagen || typeof imagen !== 'string') return placeholder;
 
-    // Si es base64 válido, retornarlo directamente
+    // Yo verifico si es una imagen en formato base64
     if (imagen.startsWith('data:')) return imagen;
 
-    // Si es ruta relativa (/uploads/...), agregar dominio
+    // Yo verifico si es una ruta relativa (/uploads/...) y agrego el dominio
     if (imagen.startsWith('/uploads/')) {
         return 'http://localhost:8090' + imagen;
     }
 
-    // Si ya es URL completa, retornarla
+    // Yo verifico si ya es una URL completa
     if (imagen.startsWith('http')) return imagen;
 
+    // Yo retorno el placeholder si no coincide con ningún formato conocido
     return placeholder;
 }
 
@@ -1058,7 +1063,7 @@ async function loadPlans() {
     const suscripciones = await api.get('/suscripciones?cliente_ci=' + clienteId);
     const activeSub = suscripciones.find(function(s) { return s.estado === 'activa'; });
 
-    // Calcular días restantes si hay suscripción activa
+    // Yo calculo los días restantes de la suscripción activa
     let diasRestantes = 0;
     let currentPlanDiscount = 0;
     if (activeSub) {
@@ -1066,46 +1071,50 @@ async function loadPlans() {
         const fechaActual = new Date();
         diasRestantes = Math.max(0, Math.ceil((fechaFin - fechaActual) / (1000 * 60 * 60 * 24)));
 
-        // Determinar descuento según plan
+        // Yo determino el descuento según el nombre del plan en la BD
         const planName = (activeSub.plan_nombre || '').toLowerCase();
         if (planName.includes('premium')) {
             currentPlanDiscount = 20;
-        } else if (planName.includes('basic') || planName.includes('basico')) {
+        } else if (planName.includes('basic')) {
             currentPlanDiscount = 5;
         }
     }
 
-    // Renderizar planes con diseño mejorado
+    // Yo renderizo los planes de suscripción con su información
     let html = '';
     planes.forEach(function(p) {
+        // Yo normalizo el nombre del plan a minúsculas para comparar
         const planName = (p.nombre || '').toLowerCase();
         const hasPlan = activeSub && activeSub.plan_id === p.id;
 
-        // Determinar tipo de plan
+        // Yo determino el tipo de plan según el nombre en la BD
         const isPremium = planName.includes('premium');
-        const isBasic = planName.includes('basic') || planName.includes('basico');
-        const isGratis = planName.includes('gratis') || p.precio === 0;
+        const isBasic = planName.includes('basic');
+        const isFree = planName.includes('free') || p.precio === 0;
 
-        // Estilo según tipo de plan
+        // Yo configuro el estilo visual según el tipo de plan
         let cardClass = 'border-secondary';
         let badge = '';
         let btnClass = 'btn-primary';
         let beneficios = '';
         let btnText = 'Suscribirse';
 
-        if (isGratis) {
+        if (isFree) {
+            // Yo configuro el estilo para plan gratuito
             cardClass = 'border-success';
             badge = '<span class="badge bg-success">0% dto</span>';
             btnClass = 'btn-success';
             beneficios = '<ul class="text-start small text-muted"><li>Acceso básico</li><li>Sin descuento</li></ul>';
             btnText = 'Activar Gratis';
         } else if (isPremium) {
+            // Yo configuro el estilo para plan premium (20% descuento)
             cardClass = 'border-warning';
             badge = '<span class="badge bg-warning text-dark">20% dto</span>';
             btnClass = 'btn-warning text-dark';
             beneficios = '<ul class="text-start small text-muted"><li>20% descuento</li><li>Acceso prioritario</li><li>Soporte exclusivo</li></ul>';
             btnText = 'Suscribirse';
         } else if (isBasic) {
+            // Yo configuro el estilo para plan basic (5% descuento)
             cardClass = 'border-info';
             badge = '<span class="badge bg-info">5% dto</span>';
             btnClass = 'btn-info text-dark';
@@ -1113,6 +1122,8 @@ async function loadPlans() {
             btnText = 'Suscribirse';
         }
 
+        // Yo construyo el HTML de la card del plan
+        // Uso el nombre original (planName) para enviar al backend
         html += '<div class="col-md-6 mb-3">' +
             '<div class="card h-100 p-4 text-center ' + (hasPlan ? 'border-success' : cardClass) + '">' +
             badge +
@@ -1158,7 +1169,7 @@ async function loadPlans() {
 }
 
 async function subscribe(planNombre, precio) {
-    // planNombre viene como string: "gratis", "basico", "precio"
+    // Yo recibo el nombre del plan desde el botón (free, basic, premium)
     if (!currentUser) {
         showPaymentError('Debe iniciar sesión');
         return;
@@ -1169,14 +1180,18 @@ async function subscribe(planNombre, precio) {
         return;
     }
 
+    // Yo normalizo el nombre del plan a minúsculas
     planNombre = planNombre.toLowerCase();
-    console.log("Enviando plan:", planNombre);
+    console.log("Yo envío el plan:", planNombre);
 
+    // Yo muestro el loader mientras proceso
     showPaymentLoader('Procesando...');
 
+    // Yo obtengo el ID del cliente del usuario actual
     const clienteCi = currentUser?.cliente?.ci || currentUser?.id;
 
     try {
+        // Yo llamo al backend para crear la suscripción
         const response = await fetch(API_URL + '/paypal/crear-suscripcion', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1187,15 +1202,43 @@ async function subscribe(planNombre, precio) {
 
         if (!response.ok) {
             const errorData = await response.json();
-            console.error("Error HTTP:", errorData);
+            console.error("Yo manejé el error HTTP:", errorData);
             showPaymentError(errorData.message || 'Error en suscripción');
             return;
         }
 
         const result = await response.json();
-        console.log("Respuesta:", result);
+        console.log("Yo recibí la respuesta:", result);
 
-        // Plan gratuito - se activa directamente
+        // Yo verifico si es un plan gratuito (se activa sin PayPal)
+        if (result.tipo === 'gratis') {
+            showToastMessage('¡Plan gratuito activado!', 'success');
+            showPage('subscription');
+            loadPlans();
+            loadUserDiscount();
+            return;
+        }
+
+        // Yo verifico si es un plan de pago (basic o premium)
+        // Si tiene approveUrl,redirijo a PayPal para completar el pago
+        if (result.success && result.approveUrl) {
+            // Yo guardo la información del plan pendiente en localStorage
+            localStorage.setItem('pendingSubscription', JSON.stringify({
+                plan: planNombre,
+                precio: precio
+            }));
+            // Yo redirijo al usuario a PayPal
+            window.location.href = result.approveUrl;
+        } else {
+            // Yo muestro el error si algo falla
+            showPaymentError(result.message || 'Error al procesar');
+        }
+    } catch (error) {
+        hidePaymentLoader();
+        console.error("Yo atrapé un error:", error);
+        showPaymentError('Error de conexión');
+    }
+}
         if (result.tipo === 'gratis') {
             showToastMessage('¡Plan gratuito activado!', 'success');
             showPage('subscription');
