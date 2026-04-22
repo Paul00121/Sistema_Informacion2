@@ -68,6 +68,8 @@ window.userDiscount = 0;
 async function loadUserDiscount() {
     if (!currentUser) return;
 
+    window.userDiscount = 0; // Resetear
+
     try {
         const clienteId = currentUser?.cliente?.ci || currentUser?.id;
         const suscripciones = await api.get('/suscripciones?cliente_ci=' + clienteId);
@@ -79,6 +81,8 @@ async function loadUserDiscount() {
                 window.userDiscount = 20;
             } else if (planName.includes('basico') || planName.includes('basic')) {
                 window.userDiscount = 5;
+            } else if (planName.includes('gratis')) {
+                window.userDiscount = 0;
             }
             console.log("Descuento aplicado:", window.userDiscount + "%");
         }
@@ -1077,31 +1081,50 @@ async function loadPlans() {
         const planName = (p.nombre || '').toLowerCase();
         const hasPlan = activeSub && activeSub.plan_id === p.id;
 
-        // Estilo según tipo de plan
+        // Determinar tipo de plan
         const isPremium = planName.includes('premium');
         const isBasic = planName.includes('basic') || planName.includes('basico');
-        const cardClass = isPremium ? 'border-warning' : (isBasic ? 'border-info' : '');
-        const badge = isPremium ? '<span class="badge bg-warning text-dark">20% dto</span>' :
-                     isBasic ? '<span class="badge bg-info">5% dto</span>' : '';
-        const btnClass = isPremium ? 'btn-warning text-dark' : 'btn-primary';
+        const isGratis = planName.includes('gratis') || p.precio === 0;
 
-        // Mostrar beneficios
-        const beneficios = isPremium ?
-            '<ul class="text-start small text-muted"><li>20% descuento en todas las compras</li><li>Acceso prioritario</li><li> Soporte exclusivo</li></ul>' :
-            '<ul class="text-start small text-muted"><li>5% descuento en todas las compras</li></ul>';
+        // Estilo según tipo de plan
+        let cardClass = 'border-secondary';
+        let badge = '';
+        let btnClass = 'btn-primary';
+        let beneficios = '';
+        let btnText = 'Suscribirse';
+
+        if (isGratis) {
+            cardClass = 'border-success';
+            badge = '<span class="badge bg-success">0% dto</span>';
+            btnClass = 'btn-success';
+            beneficios = '<ul class="text-start small text-muted"><li>Acceso básico</li><li>Sin descuento</li></ul>';
+            btnText = 'Activar Gratis';
+        } else if (isPremium) {
+            cardClass = 'border-warning';
+            badge = '<span class="badge bg-warning text-dark">20% dto</span>';
+            btnClass = 'btn-warning text-dark';
+            beneficios = '<ul class="text-start small text-muted"><li>20% descuento</li><li>Acceso prioritario</li><li>Soporte exclusivo</li></ul>';
+            btnText = 'Suscribirse';
+        } else if (isBasic) {
+            cardClass = 'border-info';
+            badge = '<span class="badge bg-info">5% dto</span>';
+            btnClass = 'btn-info text-dark';
+            beneficios = '<ul class="text-start small text-muted"><li>5% descuento</li></ul>';
+            btnText = 'Suscribirse';
+        }
 
         html += '<div class="col-md-6 mb-3">' +
-            '<div class="card h-100 p-4 text-center ' + (hasPlan ? 'border-success ' + (isPremium ? 'bg-light' : '') : cardClass) + '">' +
+            '<div class="card h-100 p-4 text-center ' + (hasPlan ? 'border-success' : cardClass) + '">' +
             badge +
             '<h4 class="mt-2">' + p.nombre + '</h4>' +
-            '<p class="text-muted small">' + p.descripcion + '</p>' +
+            '<p class="text-muted small">' + (p.descripcion || 'Plan de suscripción') + '</p>' +
             beneficios +
-            '<div style="font-size:1.8rem;font-weight:700;">' + (p.precio === 0 ? 'Free' : 'Bs ' + p.precio) + '</div>' +
-            '<small class="text-muted">Válido por ' + p.duracion_dias + ' días</small>' +
+            '<div style="font-size:1.8rem;font-weight:700;">' + (p.precio === 0 ? 'GRATIS' : 'Bs ' + p.precio) + '</div>' +
+            '<small class="text-muted">' + (p.duracion_dias ? 'Válido por ' + p.duracion_dias + ' días' : '') + '</small>' +
             '<div class="mt-3">' +
             (hasPlan ? '<button class="btn btn-success w-100" disabled><i class="bi bi-check-circle"></i> Plan Activo</button>' :
-            '<button class="btn ' + btnClass + ' w-100" onclick="subscribe(' + p.id + ', ' + p.precio + ')">' +
-            '<i class="bi bi-credit-card"></i> Suscribirse</button>') +
+            '<button class="btn ' + btnClass + ' w-100" onclick="subscribe(\'' + planName + '\', ' + p.precio + ')">' +
+            '<i class="bi bi-credit-card"></i> ' + btnText + '</button>') +
             '</div></div></div>';
     });
     const plansListEl = document.getElementById('plansList');
@@ -1134,17 +1157,19 @@ async function loadPlans() {
     }
 }
 
-async function subscribe(planId, precio) {
+async function subscribe(planNombre, precio) {
+    // planNombre viene como string: "gratis", "basico", "precio"
     if (!currentUser) {
         showPaymentError('Debe iniciar sesión');
         return;
     }
 
-    let planNombre = 'basico';
-    if (planId == 2 || String(planId).toLowerCase().includes('premium')) {
-        planNombre = 'premium';
+    if (!planNombre) {
+        showPaymentError('Plan no válido');
+        return;
     }
 
+    planNombre = planNombre.toLowerCase();
     console.log("Enviando plan:", planNombre);
 
     showPaymentLoader('Procesando...');
@@ -1170,20 +1195,31 @@ async function subscribe(planId, precio) {
         const result = await response.json();
         console.log("Respuesta:", result);
 
+        // Plan gratuito - se activa directamente
         if (result.tipo === 'gratis') {
-            showToastMessage('¡Suscripción activada!', 'success');
+            showToastMessage('¡Plan gratuito activado!', 'success');
             showPage('subscription');
             loadPlans();
             loadUserDiscount();
             return;
         }
 
+        // Planes de pago - redirigir a PayPal
         if (result.success && result.approveUrl) {
             localStorage.setItem('pendingSubscription', JSON.stringify({
                 plan: planNombre,
                 precio: precio
             }));
             window.location.href = result.approveUrl;
+        } else {
+            showPaymentError(result.message || 'Error al procesar');
+        }
+    } catch (error) {
+        hidePaymentLoader();
+        console.error("Error:", error);
+        showPaymentError('Error de conexión');
+    }
+}
         } else {
             showPaymentError(result.message || result.error || 'Error al procesar');
         }
