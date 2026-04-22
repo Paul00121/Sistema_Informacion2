@@ -1,0 +1,456 @@
+/* Sistema de Información II - Estilo Moderno */
+:root {
+    --primary: #FF9900;
+    --primary-dark: #e88a00;
+    --secondary: #232F3E;
+    --accent: #FEBD69;
+    --success: #4CAF50;
+    --danger: #DC3545;
+    --light: #F5F5F5;
+    --dark: #1a1a1a;
+    --gray: #888;
+    --shadow: 0 2px 8px rgba(0,0,0,0.1);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--light);
+    color: var(--dark);
+    line-height: 1.6;
+}
+
+/* Navbar Principal */
+.navbar-main {
+    background: var(--secondary);
+    padding: 12px 0;
+}
+
+.navbar-main .navbar-brand {
+    color: #fff !important;
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.navbar-main .navbar-brand span {
+    color: var(--primary);
+}
+
+.search-box {
+    background: #fff;
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+}
+
+.search-box input {
+    border: none;
+    padding: 12px 16px;
+    flex: 1;
+    outline: none;
+}
+
+.search-box button {
+    background: var(--primary);
+    border: none;
+    padding: 12px 24px;
+    color: var(--dark);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.search-box button:hover {
+    background: var(--primary-dark);
+}
+
+.nav-actions {
+    display: flex;
+    gap: 20px;
+    justify-content: flex-end;
+}
+
+.nav-actions a {
+    color: #fff;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+}
+
+.nav-actions a:hover {
+    color: var(--primary);
+}
+
+/* Segunda Barra */
+.navbar-secondary {
+    background: #131A22;
+    padding: 8px 0;
+}
+
+.navbar-secondary a {
+    color: #ddd;
+    text-decoration: none;
+    margin-right: 20px;
+    font-size: 0.85rem;
+}
+
+.navbar-secondary a:hover {
+    color: #fff;
+}
+
+/* Contenedor Principal */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Productos Grid */
+.productos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    margin-top: 24px;
+}
+
+/* Tarjeta de Producto */
+.product-card {
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.product-card .product-image {
+    height: 220px;
+    object-fit: cover;
+    width: 100%;
+}
+
+.product-card .card-body {
+    padding: 16px;
+}
+
+.product-card .product-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.product-card .product-category {
+    color: var(--gray);
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+}
+
+.product-card .product-price {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--dark);
+}
+
+.product-card .product-price span {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--gray);
+    text-decoration: line-through;
+    margin-left: 8px;
+}
+
+.product-card .btn-agregar {
+    width: 100%;
+    background: var(--primary);
+    color: var(--dark);
+    border: none;
+    padding: 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    margin-top: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.product-card .btn-agregar:hover {
+    background: var(--primary-dark);
+    transform: scale(1.02);
+}
+
+/* Filtros */
+.filtros-section {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+}
+
+.filtros-categorias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.filtros-categorias button {
+    background: transparent;
+    border: 1px solid #ddd;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.9rem;
+}
+
+.filtros-categorias button.active,
+.filtros-categorias button:hover {
+    background: var(--secondary);
+    color: #fff;
+    border-color: var(--secondary);
+}
+
+/* Footer */
+footer {
+    background: var(--secondary);
+    color: #fff;
+    padding: 40px 0 20px;
+    margin-top: 60px;
+}
+
+footer h5 {
+    color: #fff;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+footer a {
+    color: #ccc;
+    text-decoration: none;
+    display: block;
+    margin-bottom: 8px;
+    transition: color 0.3s;
+}
+
+footer a:hover {
+    color: var(--primary);
+}
+
+/* Formularios de Auth */
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--secondary) 0%, #1a1a1a 100%);
+}
+
+.auth-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: var(--shadow-lg);
+}
+
+.auth-card h2 {
+    text-align: center;
+    margin-bottom: 8px;
+    color: var(--secondary);
+}
+
+.auth-card .subtitle {
+    text-align: center;
+    color: var(--gray);
+    margin-bottom: 32px;
+}
+
+.auth-card .form-group {
+    margin-bottom: 20px;
+}
+
+.auth-card label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: var(--dark);
+}
+
+.auth-card input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.auth-card input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.auth-card .btn-primary {
+    width: 100%;
+    background: var(--primary);
+    color: var(--dark);
+    border: none;
+    padding: 14px;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.auth-card .btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.auth-card .link-auth {
+    text-align: center;
+    margin-top: 20px;
+    color: var(--gray);
+}
+
+.auth-card .link-auth a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+/* Alerts */
+.alert-error {
+    background: #FFEBEE;
+    color: var(--danger);
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--danger);
+}
+
+.alert-success {
+    background: #E8F5E9;
+    color: var(--success);
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--success);
+}
+
+/* Badge Carrito */
+.badge-carrito {
+    background: var(--primary);
+    color: var(--dark);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+/* Loading */
+.loading {
+    display: flex;
+    justify-content: center;
+    padding: 60px;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .navbar-main .navbar-brand {
+        font-size: 1.2rem;
+    }
+    
+    .nav-actions {
+        display: none;
+    }
+    
+    .productos-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 16px;
+    }
+    
+    .product-card .product-image {
+        height: 160px;
+    }
+    
+    .auth-card {
+        margin: 20px;
+        padding: 24px;
+    }
+}
+
+/* Categorías Destacadas */
+.categorias-banner {
+    background: #fff;
+    border-radius: 8px;
+    padding: 24px;
+    margin: 24px 0;
+    box-shadow: var(--shadow);
+}
+
+.categorias-banner h3 {
+    margin-bottom: 16px;
+    color: var(--secondary);
+}
+
+.categorias-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.categoria-item {
+    text-align: center;
+    padding: 16px;
+    border-radius: 8px;
+    background: var(--light);
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.categoria-item:hover {
+    background: var(--primary);
+    color: var(--dark);
+}
+
+.categoria-item i {
+    font-size: 2rem;
+    margin-bottom: 8px;
+    display: block;
+}

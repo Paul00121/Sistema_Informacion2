@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistemas Información II - Tu Tienda Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="recursos/css/estilos.css">
+    <style>
+        :root {
+            --primary: #FF9900;
+            --primary-dark: #E88A00;
+            --dark: #131A22;
+            --dark-secondary: #232F3E;
+            --success: #10B981;
+            --danger: #EF4444;
+            --gray-50: #F9FAFB;
+            --gray-100: #F3F4F6;
+            --gray-200: #E5E7EB;
+            --gray-300: #D1D5DB;
+            --gray-400: #9CA3AF;
+            --gray-500: #6B7280;
+            --white: #FFFFFF;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #F0F2F5;
+            color: var(--gray-800);
+        }
+
+        /* Hero Banner */
+        .hero-banner {
+            background: linear-gradient(135deg, var(--dark) 0%, var(--dark-secondary) 100%);
+            padding: 40px 0;
+            margin-bottom: 30px;
+        }
+
+        .hero-banner .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .hero-content h1 {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--white);
+            margin-bottom: 12px;
+        }
+
+        .hero-content h1 span {
+            color: var(--primary);
+        }
+
+        .hero-content p {
+            color: var(--gray-300);
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .hero-content .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            background: var(--primary);
+            color: var(--dark);
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .hero-content .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .hero-image img {
+            max-width: 400px;
+            opacity: 0.9;
+        }
+
+        /* Quick Filters */
+        .quick-filters {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        .quick-filters button {
+            padding: 10px 20px;
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-filters button:hover {
+            border-color: var(--primary);
+            color: var(--primary-dark);
+        }
+
+        .quick-filters button.active {
+            background: var(--dark);
+            color: var(--white);
+            border-color: var(--dark);
+        }
+
+        /* Categories Grid */
+        .categories-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: var(--primary);
+        }
+
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 16px;
+        }
+
+        .category-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 24px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: var(--shadow);
+        }
+
+        .category-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .category-card.active {
+            border: 2px solid var(--primary);
+            background: var(--gray-50);
+        }
+
+        .category-icon {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 12px;
+            background: var(--gray-100);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--gray-600);
+        }
+
+        .category-card:hover .category-icon {
+            background: var(--primary);
+            color: var(--dark);
+        }
+
+        .category-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        /* Products Grid */
+        .products-section {
+            margin-bottom: 40px;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+        }
+
+        .product-card {
+            background: var(--white);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s;
+            box-shadow: var(--shadow);
+        }
+
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: var(--gray-100);
+        }
+
+        .product-image-placeholder {
+            width: 100%;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gray-100);
+        }
+
+        .product-image-placeholder i {
+            font-size: 48px;
+            color: var(--gray-300);
+        }
+
+        .product-body {
+            padding: 16px;
+        }
+
+        .product-category-tag {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-bottom: 4px;
+        }
+
+        .product-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 8px;
+            line-height: 1.4;
+            height: 40px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .product-price {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--dark);
+            margin-bottom: 12px;
+        }
+
+        .btn-agregar {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: var(--dark);
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-agregar:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-agregar.added {
+            background: var(--success);
+            color: var(--white);
+        }
+
+        /* Footer */
+        .site-footer {
+            background: var(--dark);
+            color: var(--gray-300);
+            padding: 60px 0 30px;
+            margin-top: 60px;
+        }
+
+        .site-footer h5 {
+            color: var(--white);
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .site-footer a {
+            color: var(--gray-300);
+            text-decoration: none;
+            display: block;
+            margin-bottom: 10px;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .site-footer a:hover {
+            color: var(--primary);
+        }
+
+        .site-footer hr {
+            border-color: var(--gray-700);
+            margin: 30px 0;
+        }
+
+        .site-footer p {
+            text-align: center;
+            color: var(--gray-500);
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .products-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            .categories-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 992px) {
+            .products-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .hero-banner .container {
+                flex-direction: column;
+                text-align: center;
+            }
+            .hero-image {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .products-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .categories-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .hero-content h1 {
+                font-size: 28px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+            .categories-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar-main">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-2">
+                    <a class="navbar-brand" href="index.html">
+                        <i class="bi bi-bag-heart-fill"></i>
+                        Sistemas<span>Info</span>
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <form id="busquedaForm" class="search-box">
+                        <input type="text" id="busqueda" placeholder="Buscar productos, marcas, categorías...">
+                        <button type="submit"><i class="bi bi-search"></i> Buscar</button>
+                    </form>
+                </div>
+                <div class="col-md-4">
+                    <div class="nav-actions">
+                        <a href="carrito.html"><i class="bi bi-cart3"></i> Carrito <span class="badge-carrito" id="cantidad-carrito">0</span></a>
+                        <a href="login.html"><i class="bi bi-person"></i> Mi Cuenta</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Banner -->
+    <div class="hero-banner">
+        <div class="container">
+            <div class="hero-content">
+                <h1>Bienvenido a <span>Sistemas Información II</span></h1>
+                <p>Encuentra los mejores productos tecnológicos con los mejores precios</p>
+                <a href="#productos" class="btn-primary">
+                    <i class="bi bi-arrow-down"></i>
+                    Ver Productos
+                </a>
+            </div>
+            <div class="hero-image">
+                <i class="bi bi-shop" style="font-size: 120px; color: rgba(255,255,255,0.1);"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div class="container" id="productos">
+        <!-- Quick Filters -->
+        <div class="quick-filters" id="filtros-categoria">
+            <button class="active" data-cat="0">Todos</button>
+        </div>
+
+        <!-- Categories -->
+        <div class="categories-section">
+            <h2 class="section-title"><i class="bi bi-grid-3x3-gap"></i> Explora por Categoría</h2>
+            <div class="categories-grid" id="categorias-grid"></div>
+        </div>
+
+        <!-- Products -->
+        <div class="products-section">
+            <h2 class="section-title"><i class="bi bi-lightning-charge"></i> Productos Destacados</h2>
+            <div id="mensaje-error" class="alert alert-error d-none"></div>
+            <div class="products-grid" id="lista-productos">
+                <!-- Products loaded via JS -->
+                <div class="text-center py-5">
+                    <i class="bi bi-arrow-repeat" style="font-size: 32px; animation: spin 1s linear infinite;"></i>
+                    <p class="mt-3 text-muted">Cargando productos...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-3">
+                    <h5>Conócenos</h5>
+                    <a href="#">Información corporativa</a>
+                    <a href="#">Carreras</a>
+                    <a href="#">Press room</a>
+                </div>
+                <div class="col-md-3">
+                    <h5>Gana dinero con nosotros</h5>
+                    <a href="#">Vende en SistemasInfo</a>
+                    <a href="#">Protege y gestiona tu contenido</a>
+                    <a href="#">Publica tu contenido</a>
+                </div>
+                <div class="col-md-3">
+                    <h5>Métodos de pago</h5>
+                    <a href="#"><i class="bi bi-credit-card"></i> Tarjetas de crédito/débito</a>
+                    <a href="#"><i class="bi bi-qr-code"></i> Pago con QR</a>
+                    <a href="#"><i class="bi bi-paypal"></i> PayPal</a>
+                </div>
+                <div class="col-md-3">
+                    <h5>¿Necesitas ayuda?</h5>
+                    <a href="#">Ayuda al cliente</a>
+                    <a href="#">Políticas de devolución</a>
+                    <a href="#">Envíos</a>
+                </div>
+            </div>
+            <hr>
+            <p>&copy; 2024 Sistemas Información II. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        const API_URL = 'http://localhost:8090/api';
+        
+        $(document).ready(function() {
+            cargarProductos();
+            cargarCategorias();
+            actualizarContador();
+            
+            $('#busquedaForm').on('submit', function(e) {
+                e.preventDefault();
+                cargarProductos($('#busqueda').val());
+            });
+        });
+
+        function cargarProductos(busqueda = '') {
+            $.getJSON(API_URL + '/productos?busqueda=' + busqueda, function(productos) {
+                let html = '';
+                if (productos.data && productos.data.length > 0) {
+                    productos.data.forEach(function(p) {
+                        let imgSrc = p.imagen ? p.imagen : '';
+                        if (imgSrc && !imgSrc.startsWith('data:')) {
+                            imgSrc = 'recursos/imagenes/' + imgSrc;
+                        }
+                        html += '<div class="product-card">' +
+                            (imgSrc ? '<img src="' + imgSrc + '" class="product-image" alt="' + p.nombre + '">' : 
+                            '<div class="product-image-placeholder"><i class="bi bi-image"></i></div>') +
+                            '<div class="product-body">' +
+                            '<div class="product-category-tag">' + (p.categoria || 'Sin categoría') + '</div>' +
+                            '<h5 class="product-title">' + p.nombre + '</h5>' +
+                            '<div class="product-price">Bs ' + parseFloat(p.precio).toFixed(2) + '</div>' +
+                            '<button class="btn-agregar" id="btn-' + p.codigo + '" onclick="agregarCarrito(' + p.codigo + ')">' +
+                            '<i class="bi bi-cart-plus"></i> Agregar al Carrito</button>' +
+                            '</div></div>';
+                    });
+                } else {
+                    html = '<div class="col-12 text-center py-5"><i class="bi bi-inbox" style="font-size: 48px; color: var(--gray-300);"></i><p class="mt-3 text-muted">No hay productos disponibles</p></div>';
+                }
+                $('#lista-productos').html(html);
+            }).fail(function() {
+                $('#mensaje-error').removeClass('d-none').text('Error al cargar productos. Intenta más tarde.');
+            });
+        }
+
+        function cargarCategorias() {
+            $.getJSON(API_URL + '/categorias', function(categorias) {
+                let htmlBtn = '<button class="active" data-cat="0">Todos</button>';
+                let htmlCat = '';
+                if (categorias.data) {
+                    categorias.data.forEach(function(c, i) {
+                        const iconos = ['bi-laptop', 'bi-phone', 'bi-headphones', 'bi-camera', 'bi-watch', 'bi-controller', 'bi-printer', 'bi-hdd'];
+                        const icono = iconos[i % iconos.length];
+                        htmlBtn += '<button data-cat="' + c.cod + '">' + c.nombre + '</button>';
+                        htmlCat += '<div class="category-card" onclick="filtrarCategoria(' + c.cod + ')">' +
+                            '<div class="category-icon"><i class="bi ' + icono + '"></i></div>' +
+                            '<div class="category-name">' + c.nombre + '</div></div>';
+                    });
+                }
+                $('#filtros-categoria').html(htmlBtn);
+                $('#categorias-grid').html(htmlCat);
+                
+                $('#filtros-categoria button').on('click', function() {
+                    $('#filtros-categoria button').removeClass('active');
+                    $(this).addClass('active');
+                    cargarProductos('', $(this).data('cat'));
+                });
+            });
+        }
+
+        function filtrarCategoria(cod) {
+            $('#filtros-categoria button').removeClass('active');
+            $('#filtros-categoria button[data-cat="' + cod + '"]').addClass('active');
+            cargarProductos('', cod);
+            $('html, body').animate({ scrollTop: $('#productos').offset().top - 100 }, 500);
+        }
+
+        function agregarCarrito(productoId) {
+            let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
+            let existente = carrito.find(item => item.producto_id === productoId);
+            if (existente) {
+                existente.cantidad++;
+            } else {
+                carrito.push({producto_id: productoId, cantidad: 1});
+            }
+            localStorage.setItem('carrito', JSON.stringify(carrito));
+            actualizarContador();
+            
+            const btn = $('#btn-' + productoId);
+            btn.html('<i class="bi bi-check-lg"></i> Agregado').addClass('added');
+            setTimeout(function() {
+                btn.html('<i class="bi bi-cart-plus"></i> Agregar al Carrito').removeClass('added');
+            }, 2000);
+        }
+
+        function actualizarContador() {
+            let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
+            let cantidad = carrito.reduce((t, item) => t + item.cantidad, 0);
+            $('#cantidad-carrito').text(cantidad);
+        }
+    </script>
+</body>
+</html>

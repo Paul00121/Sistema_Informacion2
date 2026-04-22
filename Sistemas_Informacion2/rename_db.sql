@@ -1,0 +1,1 @@
+ALTER DATABASE "Sistemas Información II" RENAME TO dbsistemainfo2;
