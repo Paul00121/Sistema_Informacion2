@@ -235,9 +235,8 @@
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/js/auth.js"></script>
     <script>
-        const API_URL = 'http://localhost:8090/api';
         let datosRegistro = {};
         let planSeleccionado = 'basico';
 
@@ -267,7 +266,6 @@
                 password: password
             };
             
-            // Ir al paso de selección de plan
             $('#step-datos').hide();
             $('#step-plan').addClass('active');
             $('#step1').removeClass('active').addClass('completed');
@@ -284,14 +282,15 @@
             datosRegistro.plan = planSeleccionado;
             
             $.ajax({
-                url: API_URL + '/registrar',
+                url: '/api/registrar',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(datosRegistro),
                 success: function(respuesta) {
                     if (respuesta.success) {
-                        alert('¡Cuenta creada con éxito! Plan ' + planSeleccionado.toUpperCase() + ' activado.');
-                        window.location.href = 'login.html?registrado=1';
+                        localStorage.setItem('usuario', JSON.stringify(respuesta.data));
+                        Auth.saveSession(respuesta);
+                        Auth.redirectAfterLogin(respuesta.data);
                     } else {
                         $('#mensaje-error').removeClass('d-none').text(respuesta.message);
                     }
@@ -303,7 +302,6 @@
             });
         }
 
-        // Default selection
         seleccionarPlan('basico');
     </script>
 </body>

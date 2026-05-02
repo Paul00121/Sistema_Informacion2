@@ -77,105 +77,76 @@
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="/js/auth.js"></script>
     <script>
-        const API_URL = 'http://localhost:8090/api';
-        
         const CLIENT_ID = 'TU_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
-        
+
+        function afterLogin(respuesta) {
+            if (respuesta.success) {
+                localStorage.setItem('usuario', JSON.stringify(respuesta.data));
+                Auth.saveSession(respuesta);
+                Auth.redirectAfterLogin(respuesta.data);
+            } else {
+                $('#mensaje-error').removeClass('d-none').text(respuesta.message);
+            }
+        }
+
         function onGoogleCredentialResponse(response) {
             if (response.credential) {
-                const token = response.credential;
-                const payload = JSON.parse(atob(token.split('.')[1]));
+                const payload = JSON.parse(atob(response.credential.split('.')[1]));
                 const email = payload.email;
-                
                 $.ajax({
-                    url: API_URL + '/login-social',
+                    url: '/api/login-social',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({
                         email: email,
                         nombre: payload.name || email.split('@')[0],
-                        provider: 'google'
+                        google_id: response.credential
                     }),
-                    success: function(respuesta) {
-                        localStorage.setItem('usuario', JSON.stringify(respuesta.data));
-                        if (respuesta.data.rol == 1) {
-                            window.location.href = 'admin/panel.html';
-                        } else {
-                            window.location.href = 'cliente/index.html';
-                        }
-                    }
+                    success: afterLogin
                 });
             }
         }
-        
+
         function loginGoogle() {
             let email = prompt('Ingresa tu correo de Google:');
             if (email && email.includes('@')) {
                 $.ajax({
-                    url: API_URL + '/login-social',
+                    url: '/api/login-social',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({email: email, nombre: email.split('@')[0], provider: 'google'}),
-                    success: function(respuesta) {
-                        localStorage.setItem('usuario', JSON.stringify(respuesta.data));
-                        if (respuesta.data.rol == 1) {
-                            window.location.href = 'admin/index.html';
-                        } else {
-                            window.location.href = 'cliente/index.html';
-                        }
-                    }
+                    success: afterLogin
                 });
             }
         }
-        
+
         $('#googleBtn').on('click', loginGoogle);
-        $('#facebookBtn').on('click', function() {
-            alert('Facebook OAuth requiere configuración en Facebook Developers.');
-        });
-        
+
         $('#loginForm').on('submit', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
+
             let email = $('#email').val();
             let password = $('#password').val();
-            
+
             if (!email || !password) {
                 $('#mensaje-error').removeClass('d-none').text('Completa todos los campos');
-                return false;
+                return;
             }
-            
+
             $.ajax({
-                url: API_URL + '/login',
+                url: '/api/login',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({email: email, password: password}),
-                success: function(respuesta) {
-                    if (respuesta.success) {
-                        localStorage.setItem('usuario', JSON.stringify(respuesta.data));
-                        if (respuesta.data.rol == 1) {
-                            window.location.href = 'admin/index.html';
-                        } else {
-                            window.location.href = 'cliente/index.html';
-                        }
-                    } else {
-                        $('#mensaje-error').removeClass('d-none').text(respuesta.message);
-                    }
-                },
+                success: afterLogin,
                 error: function(xhr) {
                     let respuesta = xhr.responseJSON;
                     let mensaje = 'Error de conexión';
-                    if (respuesta && respuesta.message) {
-                        mensaje = respuesta.message;
-                    } else if (xhr.responseText) {
-                        try {
-                            const parsed = JSON.parse(xhr.responseText);
-                            mensaje = parsed.message || mensaje;
-                        } catch(e) {}
-                    }
+                    if (respuesta && respuesta.message) mensaje = respuesta.message;
                     $('#mensaje-error').removeClass('d-none').text(mensaje);
                 }
             });

@@ -5,7 +5,8 @@
 
 console.log("JS admin-core.js cargado");
 
-const API_URL = 'http://localhost:8090/api';
+const API_URL = '/api';
+const AUTH_TOKEN = (() => { try { return localStorage.getItem('auth_token'); } catch(e) { return null; } })();
 
 // Helper para sanitizar texto básico (evita XSS básico)
 function sanitizeText(text) {
@@ -51,18 +52,23 @@ async function cargarDashboard() {
 }
 
 class APIClient {
-    constructor(baseURL = 'http://localhost:8090/api') {
+    constructor(baseURL = '/api') {
         this.baseURL = baseURL;
+        this.token = AUTH_TOKEN || (() => { try { return localStorage.getItem('auth_token'); } catch(e) { return null; } })();
     }
 
     async request(endpoint, options = {}) {
         try {
+            const headers = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                ...options.headers
+            };
+            if (this.token) {
+                headers['Authorization'] = 'Bearer ' + this.token;
+            }
             const response = await fetch(`${this.baseURL}${endpoint}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    ...options.headers
-                },
+                headers,
                 cache: 'no-store',
                 ...options
             });
@@ -1321,7 +1327,7 @@ class ReportesManager {
 
 class App {
     constructor() {
-        this.api = new APIClient('http://localhost:8090/api');
+        this.api = new APIClient('/api');
         this.dashboardManager = new DashboardManager(this.api);
         this.productosManager = new ProductosManager(this.api);
         this.industriasManager = new IndustriasManager(this.api);
@@ -1735,7 +1741,7 @@ class SucursalesManager {
     }
 }
 
-const api = new APIClient('http://localhost:8090/api');
+const api = new APIClient('/api');
 const app = new App();
 const dashboardManager = new DashboardManager(api);
 const productosManager = new ProductosManager(api);

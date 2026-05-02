@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Completar Perfil - Sistemas Información II</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/recursos/css/estilos.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #F0F2F5; min-height: 100vh; }
+        .navbar-main { background: #232F3E; padding: 14px 0; }
+        .navbar-main .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; }
+        .navbar-main .navbar-brand { color: #fff; font-size: 1.4rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 8px; }
+        .navbar-main .navbar-brand span { color: #FF9900; }
+
+        .profile-wrapper { display: flex; align-items: center; justify-content: center; padding: 60px 24px; }
+        .profile-card { background: #fff; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); width: 100%; max-width: 480px; padding: 40px 36px; }
+        .profile-header { text-align: center; margin-bottom: 28px; }
+        .profile-icon { width: 64px; height: 64px; background: #FFF3E0; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 28px; color: #FF9900; }
+        .profile-header h1 { font-size: 22px; font-weight: 700; color: #131A22; }
+        .profile-header p { color: #6B7280; font-size: 14px; margin-top: 4px; }
+
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+        .form-group input { width: 100%; padding: 12px 14px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+        .form-group input:focus { border-color: #FF9900; box-shadow: 0 0 0 3px rgba(255,153,0,0.15); }
+
+        .btn-primary { width: 100%; padding: 13px; background: #FF9900; color: #131A22; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-primary:hover { background: #E88A00; }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btn-skip { width: 100%; padding: 11px; background: transparent; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 14px; color: #6B7280; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
+        .btn-skip:hover { background: #F9FAFB; }
+
+        .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: none; }
+        .alert-danger { background: #FEE2E2; color: #DC2626; border: 1px solid #FECACA; display: block; }
+        .alert-success { background: #D1FAE5; color: #059669; border: 1px solid #A7F3D0; display: block; }
+
+        .spinner { display: none; width: 18px; height: 18px; border: 2px solid rgba(19,26,34,0.2); border-top-color: #131A22; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <nav class="navbar-main">
+        <div class="container">
+            <a class="navbar-brand" href="/index.html">
+                <i class="bi bi-bag-heart-fill"></i> Sistemas<span>Info</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="profile-wrapper">
+        <div class="profile-card">
+            <div class="profile-header">
+                <div class="profile-icon"><i class="bi bi-person-check-fill"></i></div>
+                <h1>Completa tu Perfil</h1>
+                <p>Necesitamos algunos datos adicionales para continuar</p>
+            </div>
+
+            <div id="errorAlert" class="alert alert-danger" style="display:none"></div>
+            <div id="successAlert" class="alert alert-success" style="display:none"></div>
+
+            <form id="profileForm">
+                <div class="form-group">
+                    <label for="nombre">Nombre</label>
+                    <input type="text" id="nombre" required placeholder="Tu nombre">
+                </div>
+
+                <div class="form-group">
+                    <label for="apellido_paterno">Apellido Paterno</label>
+                    <input type="text" id="apellido_paterno" required placeholder="Tu apellido paterno">
+                </div>
+
+                <div class="form-group">
+                    <label for="telefono">Teléfono</label>
+                    <input type="number" id="telefono" required placeholder="71234567">
+                </div>
+
+                <div class="form-group">
+                    <label for="direccion">Dirección</label>
+                    <input type="text" id="direccion" required placeholder="Calle, #, Zona, Ciudad">
+                </div>
+
+                <button type="submit" class="btn-primary" id="saveBtn">
+                    <span id="btnText">Guardar y Continuar</span>
+                    <span class="spinner" id="btnSpinner"></span>
+                </button>
+            </form>
+
+            <button class="btn-skip" onclick="skipProfile()">
+                <i class="bi bi-arrow-right"></i> Omitir por ahora
+            </button>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script>
+        if (!Auth.isAuthenticated()) {
+            window.location.href = '/auth/login.html';
+        }
+
+        const user = Auth.getUser();
+        if (user && user.rol === 1) {
+            window.location.href = '/admin/index.html';
+        }
+
+        const form = document.getElementById('profileForm');
+        const btn = document.getElementById('saveBtn');
+        const btnText = document.getElementById('btnText');
+        const btnSpinner = document.getElementById('btnSpinner');
+        const errorAlert = document.getElementById('errorAlert');
+        const successAlert = document.getElementById('successAlert');
+
+        function showError(msg) {
+            errorAlert.textContent = msg;
+            errorAlert.style.display = 'block';
+            successAlert.style.display = 'none';
+        }
+
+        function showSuccess(msg) {
+            successAlert.textContent = msg;
+            successAlert.style.display = 'block';
+            errorAlert.style.display = 'none';
+        }
+
+        function hideAlerts() {
+            errorAlert.style.display = 'none';
+            successAlert.style.display = 'none';
+        }
+
+        function setLoading(loading) {
+            btn.disabled = loading;
+            btnText.style.display = loading ? 'none' : 'inline';
+            btnSpinner.style.display = loading ? 'inline-block' : 'none';
+        }
+
+        // Prefill data if available
+        if (user && user.cliente) {
+            if (user.cliente.nombre) document.getElementById('nombre').value = user.cliente.nombre;
+            if (user.cliente.apellido_paterno) document.getElementById('apellido_paterno').value = user.cliente.apellido_paterno;
+            if (user.cliente.numero_telefono) document.getElementById('telefono').value = user.cliente.numero_telefono;
+            if (user.cliente.direccion) document.getElementById('direccion').value = user.cliente.direccion;
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideAlerts();
+            setLoading(true);
+
+            const data = {
+                nombre: document.getElementById('nombre').value.trim(),
+                apellido_paterno: document.getElementById('apellido_paterno').value.trim(),
+                telefono: parseInt(document.getElementById('telefono').value) || 0,
+                direccion: document.getElementById('direccion').value.trim()
+            };
+
+            const res = await Auth.completarPerfil(data);
+
+            if (res.ok && res.data && res.data.success) {
+                const userRes = await Auth.getUserProfile();
+                if (userRes.ok && userRes.data && userRes.data.data) {
+                    Auth.setUser(userRes.data.data);
+                }
+                showSuccess('Perfil actualizado correctamente. Redirigiendo...');
+                setTimeout(() => { window.location.href = '/cliente/index.html'; }, 800);
+            } else {
+                const msg = res.data?.message || 'Error al guardar el perfil';
+                showError(msg);
+                setLoading(false);
+            }
+        });
+
+        function skipProfile() {
+            window.location.href = '/cliente/index.html';
+        }
+    </script>
+</body>
+</html>

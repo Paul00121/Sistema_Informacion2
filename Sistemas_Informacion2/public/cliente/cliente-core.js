@@ -1,9 +1,18 @@
 // Cliente Core - Tienda Online
 
-const API_URL = 'http://localhost:8090/api';
+const API_URL = '/api';
 let cart = [];
 let currentUser = null;
 let windowCurrentProduct = null;
+
+function getAuthToken() {
+    try { return localStorage.getItem('auth_token'); } catch(e) { return null; }
+}
+
+function authHeaders() {
+    const token = getAuthToken();
+    return token ? { 'Authorization': 'Bearer ' + token } : {};
+}
 
 class TiendaAPI {
     constructor(baseURL) {
@@ -13,7 +22,7 @@ class TiendaAPI {
     async get(endpoint) {
         try {
             const response = await fetch(this.baseURL + endpoint, {
-                headers: { 'Accept': 'application/json' }
+                headers: { 'Accept': 'application/json', ...authHeaders() }
             });
             const json = await response.json();
             return json.data || json;
@@ -27,7 +36,7 @@ class TiendaAPI {
         try {
             const response = await fetch(this.baseURL + endpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...authHeaders() },
                 body: JSON.stringify(data)
             });
             const json = await response.json();
@@ -122,7 +131,7 @@ async function captureOrderAndComplete(orderId) {
     try {
         const response = await fetch(API_URL + '/paypal/capture-order', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
             body: JSON.stringify({ orderID: orderId })
         });
         const result = await response.json();
@@ -646,7 +655,7 @@ function getImageUrl(imagen, size = 'thumb') {
 
     // Yo verifico si es una ruta relativa (/uploads/...) y agrego el dominio
     if (imagen.startsWith('/uploads/')) {
-        return 'http://localhost:8090' + imagen;
+        return window.location.origin + imagen;
     }
 
     // Yo verifico si ya es una URL completa
@@ -890,7 +899,7 @@ async function processPayPalPayment(total) {
     try {
         const response = await fetch(API_URL + '/paypal/create-order', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
             body: JSON.stringify({
                 amount: total,
                 description: 'Compra en Tienda Online'

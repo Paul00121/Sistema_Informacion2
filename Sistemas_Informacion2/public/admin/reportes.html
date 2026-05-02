@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes - Panel Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #4f46e5; --secondary: #1e1b4b; --success: #10b981; --warning: #f59e0b; --danger: #ef4444; --info: #06b6d4; --bg: #f8fafc; --text-muted: #6b7280; --border: #e5e7eb; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); overflow-x: hidden; }
+
+        .sidebar { width: 260px; height: 100vh; position: fixed; left: 0; top: 0; background: linear-gradient(180deg, var(--secondary), var(--primary)); z-index: 1000; transition: all .3s; overflow-y: auto; }
+        .sidebar-brand { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); }
+        .sidebar-brand h4 { color: #fff; font-weight: 700; font-size: 1.2rem; margin: 0; }
+        .sidebar-brand span { color: rgba(255,255,255,0.7); font-size: .75rem; }
+        .nav-menu { padding: 15px 0; }
+        .nav-item { margin: 2px 10px; }
+        .nav-link { color: rgba(255,255,255,0.8); padding: 12px 15px; border-radius: 8px; font-weight: 500; transition: all .2s; display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.15); color: #fff; }
+        .nav-link i { font-size: 1.1rem; width: 20px; text-align: center; }
+        .nav-link.text-warning { color: #fbbf24 !important; }
+
+        .main-content { margin-left: 260px; min-height: 100vh; padding: 20px; }
+        .topbar { background: #fff; padding: 15px 25px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05); margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .topbar h2 { margin: 0; font-size: 1.5rem; font-weight: 600; color: var(--secondary); }
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+
+        .card { border: none; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05); margin-bottom: 24px; }
+        .card-header { background: #fff; border-bottom: 1px solid var(--border); padding: 15px 20px; font-weight: 600; color: var(--secondary); display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 20px; }
+
+        .chart-container { position: relative; height: 300px; }
+
+        .btn-gear { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .2s; color: var(--text-muted); font-size: 1.1rem; }
+        .btn-gear:hover { background: var(--bg); color: var(--primary); border-color: var(--primary); transform: rotate(30deg); }
+
+        .stats-card { border-radius: 12px; padding: 20px; color: #fff; margin-bottom: 20px; }
+        .stats-card.primary { background: linear-gradient(135deg, var(--primary), #6366f1); }
+        .stats-card.success { background: linear-gradient(135deg, var(--success), #34d399); }
+        .stats-card.warning { background: linear-gradient(135deg, var(--warning), #fbbf24); }
+        .stats-card.danger { background: linear-gradient(135deg, var(--danger), #f87171); }
+        .stats-card i { font-size: 2rem; opacity: .8; }
+        .stats-card h3 { font-size: 2rem; font-weight: 700; margin: 10px 0 5px; }
+        .stats-card p { margin: 0; opacity: .9; font-size: .9rem; }
+
+        .modal-content { border-radius: 12px; border: none; }
+        .modal-header { border-bottom: 1px solid var(--border); padding: 15px 20px; }
+        .modal-body { padding: 20px; }
+        .modal-footer { border-top: 1px solid var(--border); padding: 15px 20px; }
+
+        .nav-tabs .nav-link { color: var(--text-muted); font-weight: 500; border: none; padding: 10px 16px; }
+        .nav-tabs .nav-link.active { color: var(--primary); border-bottom: 2px solid var(--primary); background: transparent; }
+        .tab-pane { padding: 16px 0; }
+
+        .color-swatch { display: inline-block; width: 24px; height: 24px; border-radius: 4px; margin: 2px; cursor: pointer; border: 2px solid transparent; transition: all .2s; }
+        .color-swatch:hover { transform: scale(1.15); }
+        .color-swatch.selected { border-color: var(--secondary); }
+
+        .palette-btn { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; background: #fff; cursor: pointer; transition: all .2s; font-size: .8rem; }
+        .palette-btn:hover { border-color: var(--primary); background: var(--bg); }
+
+        @media (max-width: 768px) { .sidebar { margin-left: -260px; } .main-content { margin-left: 0; } .sidebar.show { margin-left: 0; } }
+    </style>
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <h4><i class="bi bi-shop"></i> Tienda Admin</h4>
+            <span>Reportes y Estadísticas</span>
+        </div>
+        <nav class="nav-menu">
+            <div class="nav-item"><a href="index.html" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a></div>
+            <div class="nav-item"><a href="reportes.html" class="nav-link active"><i class="bi bi-graph-up"></i> Reportes</a></div>
+            <div class="nav-item"><a href="index.html" class="nav-link" onclick="goTo('productos')"><i class="bi bi-box-seam"></i> Productos</a></div>
+            <div class="nav-item"><a href="index.html" class="nav-link" onclick="goTo('ventas')"><i class="bi bi-cart-check"></i> Ventas</a></div>
+            <div class="nav-item"><a href="#" class="nav-link text-warning" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Cerrar Sesión</a></div>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="topbar">
+            <div>
+                <button class="btn btn-outline-secondary d-lg-none me-2" id="toggleSidebar"><i class="bi bi-list"></i></button>
+                <h2>Reportes Gráficos</h2>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-outline-primary btn-sm" onclick="chartManager.refreshAll()">
+                    <i class="bi bi-arrow-clockwise"></i> Recargar
+                </button>
+                <div class="user-avatar" id="userAvatar">A</div>
+                <div>
+                    <strong id="userName">Administrador</strong>
+                    <div class="text-muted small" id="userEmail">admin@tienda.com</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="row mb-4">
+            <div class="col-6 col-md-3">
+                <div class="stats-card primary">
+                    <i class="bi bi-trophy"></i>
+                    <h3 id="statProductos">—</h3>
+                    <p>Productos</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stats-card success">
+                    <i class="bi bi-people"></i>
+                    <h3 id="statClientes">—</h3>
+                    <p>Clientes</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stats-card warning">
+                    <i class="bi bi-cart-check"></i>
+                    <h3 id="statVentas">—</h3>
+                    <p>Ventas</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stats-card danger">
+                    <i class="bi bi-currency-dollar"></i>
+                    <h3 id="statIngresos">—</h3>
+                    <p>Ingresos</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="row">
+            <!-- Top 3 Clientes -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <span><i class="bi bi-trophy me-2"></i>Top 3 Clientes</span>
+                        <button class="btn-gear" onclick="chartManager.openConfig('top-clientes')" title="Configurar gráfico"><i class="bi bi-gear"></i></button>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container"><canvas id="chart-top-clientes"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top 5 Clientes -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <span><i class="bi bi-award me-2"></i>Top 5 Clientes</span>
+                        <button class="btn-gear" onclick="chartManager.openConfig('top-clientes-5')" title="Configurar gráfico"><i class="bi bi-gear"></i></button>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container"><canvas id="chart-top-clientes-5"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ventas por Sucursal -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <span><i class="bi bi-shop-window me-2"></i>Ventas por Sucursal</span>
+                        <button class="btn-gear" onclick="chartManager.openConfig('ventas-sucursal')" title="Configurar gráfico"><i class="bi bi-gear"></i></button>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container"><canvas id="chart-ventas-sucursal"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ventas por Categoría -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <span><i class="bi bi-tags me-2"></i>Ventas por Categoría</span>
+                        <button class="btn-gear" onclick="chartManager.openConfig('ventas-categoria')" title="Configurar gráfico"><i class="bi bi-gear"></i></button>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container"><canvas id="chart-ventas-categoria"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ventas Mensuales -->
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <span><i class="bi bi-graph-up me-2"></i>Ventas Mensuales</span>
+                        <button class="btn-gear" onclick="chartManager.openConfig('ventas-mensuales')" title="Configurar gráfico"><i class="bi bi-gear"></i></button>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container"><canvas id="chart-ventas-mensuales"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ⚙️ Modal de Configuración de Gráficos -->
+    <div class="modal fade" id="configChartModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-gear me-2"></i>Configurar: <span id="configChartTitle">Gráfico</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs" role="tablist">
+                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-tipo">Tipo</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-colores">Colores</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-datos">Datos</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-visual">Visual</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-ejes">Ejes</button></li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <!-- Tipo de gráfico -->
+                        <div class="tab-pane fade show active" id="tab-tipo">
+                            <div class="row g-3">
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="chartTypeRadio" id="type-bar" value="bar">
+                                        <label class="form-check-label" for="type-bar"><i class="bi bi-bar-chart"></i> Barras</label>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="chartTypeRadio" id="type-line" value="line">
+                                        <label class="form-check-label" for="type-line"><i class="bi bi-graph-up"></i> Líneas</label>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="chartTypeRadio" id="type-pie" value="pie">
+                                        <label class="form-check-label" for="type-pie"><i class="bi bi-pie-chart"></i> Pastel</label>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="chartTypeRadio" id="type-doughnut" value="doughnut">
+                                        <label class="form-check-label" for="type-doughnut"><i class="bi bi-circle"></i> Donut</label>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="chartTypeRadio" id="type-polarArea" value="polarArea">
+                                        <label class="form-check-label" for="type-polarArea"><i class="bi bi-hexagon"></i> Polar</label>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="chartTypeRadio" id="type-radar" value="radar">
+                                        <label class="form-check-label" for="type-radar"><i class="bi bi-star"></i> Radar</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="cfg_chartType">
+                        </div>
+
+                        <!-- Colores -->
+                        <div class="tab-pane fade" id="tab-colores">
+                            <div class="mb-3">
+                                <label class="form-label">Paletas rápidas</label>
+                                <div class="d-flex flex-wrap gap-2" id="paletteList"></div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Colores personalizados (hex, separados por coma)</label>
+                                <input type="text" class="form-control" id="cfg_colors" placeholder="#4f46e5,#10b981,#f59e0b">
+                            </div>
+                            <div>
+                                <label class="form-label">Vista previa</label>
+                                <div id="cfg_colorPreview" class="d-flex flex-wrap gap-1"></div>
+                            </div>
+                        </div>
+
+                        <!-- Datos / Orden -->
+                        <div class="tab-pane fade" id="tab-datos">
+                            <div class="mb-3">
+                                <label class="form-label">Orden de datos</label>
+                                <select class="form-select" id="cfg_sort">
+                                    <option value="desc">Descendente (mayor a menor)</option>
+                                    <option value="asc">Ascendente (menor a mayor)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Visualización -->
+                        <div class="tab-pane fade" id="tab-visual">
+                            <div class="mb-3 form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="cfg_showLegend" checked>
+                                <label class="form-check-label" for="cfg_showLegend">Mostrar leyenda</label>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Borde redondeado (px)</label>
+                                <input type="number" class="form-control" id="cfg_borderRadius" min="0" max="20" value="4">
+                            </div>
+                        </div>
+
+                        <!-- Ejes -->
+                        <div class="tab-pane fade" id="tab-ejes">
+                            <div class="mb-3 form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="cfg_showGrid" checked>
+                                <label class="form-check-label" for="cfg_showGrid">Mostrar cuadrícula</label>
+                            </div>
+                            <p class="text-muted small mb-0">Los cambios en ejes se aplican al guardar. Para gráficos circulares estas opciones no aplican.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="cfg_applyBtn"><i class="bi bi-check-lg"></i> Aplicar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/ChartConfigManager.js"></script>
+    <script>
+        if (!Auth.isAuthenticated()) { window.location.href = '/auth/login.html'; }
+
+        const user = Auth.getUser();
+        if (user) {
+            document.getElementById('userName').textContent = user.email ? user.email.split('@')[0] : 'Admin';
+            document.getElementById('userEmail').textContent = user.email || '';
+            document.getElementById('userAvatar').textContent = (user.email || 'A')[0].toUpperCase();
+        }
+
+        function logout() { Auth.logout(); }
+        function goTo(section) { window.location.href = 'index.html#' + section; }
+
+        const apiFetch = async (url) => {
+            const token = Auth.getToken();
+            const headers = { 'Accept': 'application/json' };
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+            const res = await fetch('/api' + url, { headers });
+            const json = await res.json();
+            return json.data || json;
+        };
+
+        // Chart Manager - define all 5 charts
+        const chartManager = new ChartConfigManager();
+        chartManager.defineChart('top-clientes', {
+            endpoint: '/top-clientes',
+            labelKey: 'nombre',
+            valueKey: 'total_gastado',
+            secondaryValueKey: 'total_compras',
+            title: 'Top 3 Clientes',
+            defaultType: 'bar',
+        });
+        chartManager.defineChart('top-clientes-5', {
+            endpoint: '/top-clientes-5',
+            labelKey: 'nombre',
+            valueKey: 'total_gastado',
+            secondaryValueKey: 'total_compras',
+            title: 'Top 5 Clientes',
+            defaultType: 'bar',
+        });
+        chartManager.defineChart('ventas-sucursal', {
+            endpoint: '/ventas-sucursal',
+            labelKey: 'nombre',
+            valueKey: 'total_ventas',
+            secondaryValueKey: 'total_ingresos',
+            title: 'Ventas por Sucursal',
+            defaultType: 'bar',
+        });
+        chartManager.defineChart('ventas-categoria', {
+            endpoint: '/ventas-categoria',
+            labelKey: 'categoria',
+            valueKey: 'total_ventas',
+            secondaryValueKey: 'total_ingresos',
+            title: 'Ventas por Categoría',
+            defaultType: 'doughnut',
+        });
+        chartManager.defineChart('ventas-mensuales', {
+            endpoint: '/ventas-mensuales',
+            labelKey: 'mes',
+            valueKey: 'total_ingresos',
+            secondaryValueKey: 'total_ventas',
+            title: 'Ventas Mensuales',
+            defaultType: 'line',
+        });
+
+        // Override chart type radio handler to sync with hidden input
+        document.querySelectorAll('input[name="chartTypeRadio"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.checked) {
+                    document.getElementById('cfg_chartType').value = radio.value;
+                }
+            });
+        });
+
+        // Sync the openConfig to set radio buttons from saved type
+        const originalOpenConfig = chartManager.openConfig.bind(chartManager);
+        chartManager.openConfig = function(id) {
+            originalOpenConfig(id);
+            const cfg = this.getConfig(id);
+            const radio = document.querySelector('input[name="chartTypeRadio"][value="' + cfg.type + '"]');
+            if (radio) radio.checked = true;
+            document.getElementById('cfg_chartType').value = cfg.type;
+        };
+
+        // Apply config override: also read from radio buttons
+        const originalApply = chartManager.applyConfig.bind(chartManager);
+        chartManager.applyConfig = function() {
+            const selectedRadio = document.querySelector('input[name="chartTypeRadio"]:checked');
+            if (selectedRadio) {
+                document.getElementById('cfg_chartType').value = selectedRadio.value;
+            }
+            originalApply();
+        };
+
+        chartManager.setupModalListeners();
+
+        // Populate palettes
+        const palettes = ChartConfigManager.getColorPalettes();
+        const paletteContainer = document.getElementById('paletteList');
+        Object.entries(palettes).forEach(([name, colors]) => {
+            const btn = document.createElement('button');
+            btn.className = 'palette-btn';
+            btn.innerHTML = colors.split(',').map(c =>
+                '<span class="color-swatch" style="background:' + c + '"></span>'
+            ).join('') + ' <small>' + name + '</small>';
+            btn.addEventListener('click', () => {
+                document.getElementById('cfg_colors').value = colors;
+                chartManager.previewColors(colors.split(','));
+            });
+            paletteContainer.appendChild(btn);
+        });
+
+        // Load stats
+        async function loadStats() {
+            try {
+                const [productos, clientes, ventasRes, ingresosRes] = await Promise.all([
+                    apiFetch('/productos'), apiFetch('/clientes'), apiFetch('/ventas/completadas'), apiFetch('/ingresos-completados')
+                ]);
+                document.getElementById('statProductos').textContent = (Array.isArray(productos) && productos.length !== undefined) ? productos.length : (productos && productos.length !== undefined ? productos.length : '—');
+                document.getElementById('statClientes').textContent = (Array.isArray(clientes) && clientes.length !== undefined) ? clientes.length : (clientes && clientes.length !== undefined ? clientes.length : '—');
+                document.getElementById('statVentas').textContent = ventasRes.total ?? (typeof ventasRes === 'number' ? ventasRes : '—');
+                document.getElementById('statIngresos').textContent = 'Bs ' + (ingresosRes.total ?? (typeof ingresosRes === 'number' ? ingresosRes.toFixed(2) : '—'));
+            } catch(e) { console.error(e); }
+        }
+
+        async function init() {
+            await loadStats();
+            await chartManager.refreshAll();
+        }
+        init();
+
+        document.getElementById('toggleSidebar')?.addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('show');
+        });
+    </script>
+</body>
+</html>

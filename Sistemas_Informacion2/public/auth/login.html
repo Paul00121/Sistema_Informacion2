@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - Sistemas Información II</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/recursos/css/estilos.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #F0F2F5; min-height: 100vh; display: flex; flex-direction: column; }
+        .navbar-main { background: #232F3E; padding: 14px 0; }
+        .navbar-main .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; }
+        .navbar-main .navbar-brand { color: #fff; font-size: 1.4rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 8px; }
+        .navbar-main .navbar-brand span { color: #FF9900; }
+
+        .login-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+        .login-card { background: #fff; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); width: 100%; max-width: 420px; padding: 40px 36px; }
+        .login-header { text-align: center; margin-bottom: 32px; }
+        .login-header h1 { font-size: 24px; font-weight: 700; color: #131A22; }
+        .login-header p { color: #6B7280; font-size: 14px; margin-top: 6px; }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+        .form-group input { width: 100%; padding: 12px 14px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+        .form-group input:focus { border-color: #FF9900; box-shadow: 0 0 0 3px rgba(255,153,0,0.15); }
+
+        .btn-primary { width: 100%; padding: 13px; background: #FF9900; color: #131A22; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-primary:hover { background: #E88A00; }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .divider { display: flex; align-items: center; gap: 12px; margin: 24px 0; color: #9CA3AF; font-size: 13px; }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #E5E7EB; }
+
+        .btn-google { width: 100%; padding: 12px; background: #fff; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; color: #374151; }
+        .btn-google:hover { background: #F9FAFB; }
+        .btn-google img { width: 20px; height: 20px; }
+
+        .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: none; }
+        .alert-danger { background: #FEE2E2; color: #DC2626; border: 1px solid #FECACA; display: block; }
+        .alert-success { background: #D1FAE5; color: #059669; border: 1px solid #A7F3D0; display: block; }
+        .alert-info { background: #DBEAFE; color: #2563EB; border: 1px solid #BFDBFE; display: block; }
+
+        .footer-links { text-align: center; margin-top: 24px; font-size: 13px; color: #6B7280; }
+        .footer-links a { color: #FF9900; text-decoration: none; font-weight: 500; }
+        .footer-links a:hover { text-decoration: underline; }
+
+        .spinner { display: none; width: 18px; height: 18px; border: 2px solid rgba(19,26,34,0.2); border-top-color: #131A22; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <nav class="navbar-main">
+        <div class="container">
+            <a class="navbar-brand" href="/index.html">
+                <i class="bi bi-bag-heart-fill"></i> Sistemas<span>Info</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>Iniciar Sesión</h1>
+                <p>Ingresa a tu cuenta para continuar</p>
+            </div>
+
+            <div id="errorAlert" class="alert alert-danger" style="display:none"></div>
+            <div id="successAlert" class="alert alert-success" style="display:none"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Correo electrónico</label>
+                    <input type="email" id="email" required placeholder="tu@correo.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" required placeholder="••••••••">
+                </div>
+
+                <button type="submit" class="btn-primary" id="loginBtn">
+                    <span id="btnText">Iniciar Sesión</span>
+                    <span class="spinner" id="btnSpinner"></span>
+                </button>
+            </form>
+
+            <div class="divider">o continúa con</div>
+
+            <div id="googleButton"></div>
+
+            <div class="footer-links">
+                <p><a href="/auth/register.html">Crear cuenta nueva</a></p>
+                <p style="margin-top:8px;"><a href="/recuperar.html">¿Olvidaste tu contraseña?</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="/js/auth.js"></script>
+    <script>
+        const form = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('loginBtn');
+        const btnText = document.getElementById('btnText');
+        const btnSpinner = document.getElementById('btnSpinner');
+        const errorAlert = document.getElementById('errorAlert');
+        const successAlert = document.getElementById('successAlert');
+
+        function showError(msg) {
+            errorAlert.textContent = msg;
+            errorAlert.style.display = 'block';
+            successAlert.style.display = 'none';
+        }
+
+        function showSuccess(msg) {
+            successAlert.textContent = msg;
+            successAlert.style.display = 'block';
+            errorAlert.style.display = 'none';
+        }
+
+        function hideAlerts() {
+            errorAlert.style.display = 'none';
+            successAlert.style.display = 'none';
+        }
+
+        function setLoading(loading) {
+            loginBtn.disabled = loading;
+            btnText.style.display = loading ? 'none' : 'inline';
+            btnSpinner.style.display = loading ? 'inline-block' : 'none';
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideAlerts();
+            setLoading(true);
+
+            const res = await Auth.login(emailInput.value, passwordInput.value);
+
+            if (res.ok && res.data && res.data.success) {
+                showSuccess('Inicio de sesión exitoso. Redirigiendo...');
+                Auth.saveSession(res.data);
+                setTimeout(() => Auth.redirectAfterLogin(res.data.data), 600);
+            } else {
+                const msg = res.data?.message || 'Error al iniciar sesión';
+                showError(msg);
+                setLoading(false);
+            }
+        });
+
+        // Google Sign-In
+        if (typeof google !== 'undefined' && google.accounts) {
+            google.accounts.id.initialize({
+                client_id: 'TU_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+                callback: async (response) => {
+                    if (response.credential) {
+                        hideAlerts();
+                        setLoading(true);
+
+                        const res = await Auth.googleCallback(response.credential);
+
+                        if (res.ok && res.data && res.data.success) {
+                            showSuccess('Inicio de sesión exitoso. Redirigiendo...');
+                            Auth.saveSession(res.data);
+                            setTimeout(() => Auth.redirectAfterLogin(res.data.data), 600);
+                        } else {
+                            const msg = res.data?.message || 'Error al iniciar sesión con Google';
+                            showError(msg);
+                            setLoading(false);
+                        }
+                    }
+                }
+            });
+            google.accounts.id.renderButton(
+                document.getElementById('googleButton'),
+                { theme: 'outline', size: 'large', width: 348, text: 'continue_with' }
+            );
+        } else {
+            document.getElementById('googleButton').innerHTML =
+                '<button class="btn-google" onclick="alert(\'Google Sign-In no disponible. Cargue la página de nuevo.\')">' +
+                '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Continuar con Google</button>';
+        }
+    </script>
+</body>
+</html>

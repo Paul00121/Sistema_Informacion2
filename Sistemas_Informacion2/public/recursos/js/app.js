@@ -1,6 +1,6 @@
 // Configuración global
-const API_URL = 'http://localhost:8090/api';
-const APP_URL = 'http://localhost/frontend-tienda';
+const API_URL = '/api';
+const APP_URL = '';
 
 // Carrito en localStorage
 let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
