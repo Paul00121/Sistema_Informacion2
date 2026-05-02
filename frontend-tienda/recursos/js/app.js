@@ -1,5 +1,15 @@
 // Configuración global
+
+// Detectar si se ejecuta desde file:// o http://
+const IS_FILE = window.location.protocol === 'file:';
+
+// Configurar API_URL dinámico - siempre apunta a localhost:8090
 const API_URL = 'http://localhost:8090/api';
+
+// Advertencia solo en consola si está en modo file
+if (IS_FILE) {
+    console.warn('Modo file:// activo - el sistema funcionará correctamente conectándose a http://localhost:8090/api');
+}
 const APP_URL = 'http://localhost/frontend-tienda';
 
 // Carrito en localStorage

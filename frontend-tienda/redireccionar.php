@@ -11,7 +11,7 @@ if (! isset($_SESSION['usuario'])) {
 $usuario = $_SESSION['usuario'];
 
 if ($usuario['rol'] == 1) {
-    header('Location: ../admin/panel.html');
+    header('Location: ../admin/index.html');
 } else {
     header('Location: ../cliente/index.html');
 }

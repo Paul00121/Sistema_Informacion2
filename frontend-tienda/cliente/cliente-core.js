@@ -1,6 +1,13 @@
 // Cliente Core - Tienda Online
 
-const API_URL = 'http://localhost:8090/api';
+// Detectar si se ejecuta desde file:// o http://
+const IS_FILE = window.location.protocol === 'file:';
+
+// API_URL is provided by config.js (CONFIG.API_URL)
+// Advertencia solo en consola si está en modo file
+if (IS_FILE) {
+    console.warn('Modo file:// activo - el sistema funcionará correctamente conectándose a http://localhost:8090/api');
+}
 let cart = [];
 let currentUser = null;
 let windowCurrentProduct = null;
@@ -38,8 +45,8 @@ class TiendaAPI {
         }
     }
 }
-
-const api = new TiendaAPI(API_URL);
+        
+        const api = new TiendaAPI(CONFIG.API_URL);
 
 function init() {
     const userData = localStorage.getItem('usuario');
@@ -68,29 +75,22 @@ window.userDiscount = 0;
 async function loadUserDiscount() {
     if (!currentUser) return;
 
-    // Yo reseteo el descuento a 0 cada vez que se llama esta función
-    window.userDiscount = 0;
-
     try {
-        // Yo obtengo las suscripciones del usuario actual
         const clienteId = currentUser?.cliente?.ci || currentUser?.id;
         const suscripciones = await api.get('/suscripciones?cliente_ci=' + clienteId);
         const activeSub = suscripciones.find(function(s) { return s.estado === 'activa'; });
 
         if (activeSub) {
-            // Yo determino el descuento según el nombre del plan en la BD
             const planName = (activeSub.plan_nombre || '').toLowerCase();
             if (planName.includes('premium')) {
                 window.userDiscount = 20;
-            } else if (planName.includes('basic')) {
+            } else if (planName.includes('basico') || planName.includes('basic')) {
                 window.userDiscount = 5;
-            } else if (planName.includes('free')) {
-                window.userDiscount = 0;
             }
-            console.log("Yo apliqué descuento:", window.userDiscount + "%");
+            console.log("Descuento aplicado:", window.userDiscount + "%");
         }
     } catch(e) {
-        console.error("Yo atrapé un error al cargar el descuento:", e);
+        console.error("Error al cargar descuento:", e);
     }
 }
 
@@ -100,8 +100,8 @@ function handlePayPalReturn() {
     const orderId = urlParams.get('token') || urlParams.get('orderId');
     const subscriptionId = urlParams.get('subscriptionId');
 
-    // Si viene de suscripción (tiene subscriptionId en la URL)
-    if (subscriptionId) {
+    // Si viene de suscripci+�n (tiene subscriptionId en la URL)
+    if (subscriptionId || paypalStatus === 'suscripcion') {
         processPendingSubscription();
         return;
     }
@@ -135,7 +135,7 @@ async function captureOrderAndComplete(orderId) {
             await confirmPaymentAndRedirect(total);
         } else {
             hidePaymentLoader();
-            showPaymentError('Error al completar el pago: ' + (result.error || 'Intente más tarde'));
+            showPaymentError('Error al completar el pago: ' + (result.error || 'Intente m+�s tarde'));
         }
     } catch(e) {
         hidePaymentLoader();
@@ -235,11 +235,10 @@ function renderProducts(productos, containerId) {
         html = '<div class="col-12"><p class="text-muted">No hay productos disponibles</p></div>';
     }
     productos.forEach(function(p) {
-        // Yo construyo la URL de la imagen del producto
         const imgUrl = getImageUrl(p.imagen, 'medium');
         const precioOriginal = p.precio;
 
-        // Yo calculo el precio con descuento si el usuario tiene suscripción activa
+        // Calcular precio con descuento si existe
         let precioFinal = precioOriginal;
         let priceHtml = '<div class="price">Bs ' + new Intl.NumberFormat('es-BO').format(precioOriginal) + '</div>';
 
@@ -262,7 +261,7 @@ function renderProducts(productos, containerId) {
     if (container) container.innerHTML = html;
 }
 
-// Variable global para almacenar selección de sucursal
+// Variable global para almacenar selecci+�n de sucursal
 let selectedSucursal = null;
 let currentProductStock = 0;
 
@@ -284,25 +283,25 @@ function viewProduct(codigo) {
         // Ocultar info de stock inicialmente
         document.getElementById('stockInfo').style.display = 'none';
 
-        // Obtener referencia al botón antes de cargar sucursales
+        // Obtener referencia al bot+�n antes de cargar sucursales
         const addToCartBtn = document.querySelector('#page-product button[onclick="addToCartFromProduct()"]');
         const qtyInput = document.getElementById('productQty');
 
-        // Deshabilitar botón inicialmente hasta que se seleccione sucursal
+        // Deshabilitar bot+�n inicialmente hasta que se seleccione sucursal
         if (addToCartBtn) {
             addToCartBtn.disabled = true;
             addToCartBtn.classList.add('disabled');
         }
 
         // Cargar sucursales con stock para este producto
-        // La función loadSucursalesForProduct maneja la habilitación según stock disponible
+        // La funci+�n loadSucursalesForProduct maneja la habilitaci+�n seg+�n stock disponible
         loadSucursalesForProduct(codigo);
 
         showPage('product');
     });
 }
 
-// Carga las sucursales disponibles para un producto específico
+// Carga las sucursales disponibles para un producto espec+�fico
 // Mejora: muestra AGOTADO si no hay stock, deshabilita opciones sin stock
 async function loadSucursalesForProduct(productoCod) {
     const container = document.getElementById('sucursalesList');
@@ -385,7 +384,7 @@ async function loadSucursalesForProduct(productoCod) {
                         document.getElementById('stockCantidad').textContent = currentProductStock;
                     }
 
-                    // Habilitar botón y cantidad
+                    // Habilitar bot+�n y cantidad
                     if (addToCartBtn) {
                         addToCartBtn.disabled = false;
                         addToCartBtn.classList.remove('disabled');
@@ -393,7 +392,7 @@ async function loadSucursalesForProduct(productoCod) {
                     }
                     if (qtyInput) qtyInput.disabled = false;
 
-                    // Actualizar máximo de cantidad
+                    // Actualizar m+�ximo de cantidad
                     if (qtyInput) {
                         qtyInput.max = currentProductStock;
                         if (parseInt(qtyInput.value) > currentProductStock) {
@@ -410,7 +409,7 @@ async function loadSucursalesForProduct(productoCod) {
     }
 }
 
-// Cancela la selección de producto y vuelve a la lista
+// Cancela la selecci+�n de producto y vuelve a la lista
 function cancelProductDetail() {
     selectedSucursal = null;
     currentProductStock = 0;
@@ -422,7 +421,7 @@ function cancelProductDetail() {
 function addToCartFromProduct() {
     if (!windowCurrentProduct) return;
 
-    // Validar selección de sucursal
+    // Validar selecci+�n de sucursal
     if (!selectedSucursal) {
         showToastMessage('Seleccione una sucursal', 'error');
         return;
@@ -436,13 +435,13 @@ function addToCartFromProduct() {
         return;
     }
 
-    // Añadir al carrito
+    // A+�adir al carrito
     addToCart(windowCurrentProduct, qty, selectedSucursal);
 
     // Mostrar feedback en UI (toast)
-    showToastMessage('Producto añadido al carrito', 'success');
+    showToastMessage('Producto a+�adido al carrito', 'success');
 
-    // Limpiar selección y volver a productos
+    // Limpiar selecci+�n y volver a productos
     selectedSucursal = null;
     currentProductStock = 0;
     windowCurrentProduct = null;
@@ -578,8 +577,8 @@ function showPaymentSuccess(message) {
             content.innerHTML =
                 '<div class="text-center p-4">' +
                 '<i class="bi bi-check-circle text-success" style="font-size:4rem;"></i>' +
-                '<h5 class="mt-3">¡Éxito!</h5>' +
-                '<p class="text-muted">' + (message || 'Operación completada') + '</p>' +
+                '<h5 class="mt-3">-�+�xito!</h5>' +
+                '<p class="text-muted">' + (message || 'Operaci+�n completada') + '</p>' +
                 '<button class="btn btn-primary" onclick="closeSuccessPayment()">Aceptar</button></div>';
             try {
                 new bootstrap.Modal(modal).show();
@@ -588,7 +587,7 @@ function showPaymentSuccess(message) {
             }
         }
     } else {
-        showToastMessage(message || 'Éxito', 'success');
+        showToastMessage(message || '+�xito', 'success');
     }
 }
 
@@ -617,20 +616,20 @@ function showToastMessage(message, type) {
         '<div class="toast show" role="alert">' +
         '<div class="toast-header ' + bgClass + ' text-white">' +
         '<i class="bi ' + icon + ' me-2"></i>' +
-        '<strong class="me-auto">' + (type === 'error' ? 'Error' : 'Éxito') + '</strong>' +
+        '<strong class="me-auto">' + (type === 'error' ? 'Error' : '+�xito') + '</strong>' +
         '<button type="button" class="btn-close" onclick="this.closest(\'.toast-container\').remove()"></button></div>' +
         '<div class="toast-body text-center">' + message + '</div></div>';
 
     document.body.appendChild(toast);
 
-    // Auto ocultar después de 3 segundos
+    // Auto ocultar despu+�s de 3 segundos
     setTimeout(function() {
         if (toast.parentNode) toast.remove();
     }, 3000);
 }
 
 function getImageUrl(imagen, size = 'thumb') {
-    // Yo defino los placeholders según el tamaño solicitado
+    // Placeholder seg+�n tama+�o
     const placeholders = {
         'thumb': 'https://placehold.co/60x60?text=Sin+Imagen',
         'medium': 'https://placehold.co/200x200?text=Sin+Imagen',
@@ -638,21 +637,20 @@ function getImageUrl(imagen, size = 'thumb') {
     };
     const placeholder = placeholders[size] || placeholders['thumb'];
 
-    // Yo valido que la imagen exista y sea un string válido
+    // Validar que imagen exista y sea string
     if (!imagen || typeof imagen !== 'string') return placeholder;
 
-    // Yo verifico si es una imagen en formato base64
+    // Si es base64 v+�lido, retornarlo directamente
     if (imagen.startsWith('data:')) return imagen;
 
-    // Yo verifico si es una ruta relativa (/uploads/...) y agrego el dominio
+    // Si es ruta relativa (/uploads/...), agregar dominio
     if (imagen.startsWith('/uploads/')) {
         return 'http://localhost:8090' + imagen;
     }
 
-    // Yo verifico si ya es una URL completa
+    // Si ya es URL completa, retornarla
     if (imagen.startsWith('http')) return imagen;
 
-    // Yo retorno el placeholder si no coincide con ningún formato conocido
     return placeholder;
 }
 
@@ -660,7 +658,7 @@ function renderCart() {
     const total = cart.reduce(function(sum, item) { return sum + (item.precio * item.cantidad); }, 0);
     let html = '';
     if (cart.length === 0) {
-        html = '<p class="text-muted">El carrito está vacío</p>';
+        html = '<p class="text-muted">El carrito est+� vac+�o</p>';
     }
     cart.forEach(function(item) {
         const imgUrl = getImageUrl(item.imagen, 'thumb');
@@ -752,7 +750,7 @@ async function getUserDiscount() {
 
 function goToCheckout() {
     if (cart.length === 0) {
-        showToastMessage('El carrito está vacío', 'error');
+        showToastMessage('El carrito est+� vac+�o', 'error');
         return;
     }
     closeCart();
@@ -803,7 +801,7 @@ async function loadAddresses() {
 async function saveAddress() {
     const direccionInput = document.getElementById('newAddress');
     if (!direccionInput || !direccionInput.value) {
-        showToastMessage('Ingrese una dirección', 'error');
+        showToastMessage('Ingrese una direcci+�n', 'error');
         return;
     }
     const direccion = direccionInput.value;
@@ -816,7 +814,7 @@ async function saveAddress() {
     });
 
     if (result.success) {
-        // Cerrar modal de dirección
+        // Cerrar modal de direcci+�n
         const addressModal = document.getElementById('addressModal');
         if (addressModal) {
             try {
@@ -849,14 +847,14 @@ function togglePaymentMethod() {
 async function processPayment() {
     const paymentMethodEl = document.querySelector('input[name="payment"]:checked');
     if (!paymentMethodEl) {
-        showToastMessage('Seleccione método de pago', 'error');
+        showToastMessage('Seleccione m+�todo de pago', 'error');
         return;
     }
     const paymentMethod = paymentMethodEl.value;
 
     const selectedAddress = document.querySelector('input[name="selectedAddress"]:checked');
     if (!selectedAddress) {
-        showToastMessage('Seleccione una dirección de entrega', 'error');
+        showToastMessage('Seleccione una direcci+�n de entrega', 'error');
         return;
     }
 
@@ -909,7 +907,7 @@ async function processPayPalPayment(total) {
         showPaymentError(result.error || 'Error al conectar con PayPal');
     } catch (error) {
         hidePaymentLoader();
-        showPaymentError('Error de conexión: ' + error.message);
+        showPaymentError('Error de conexi+�n: ' + error.message);
     }
 }
 
@@ -1041,7 +1039,7 @@ async function loadProfile() {
 }
 
 function editProfile() {
-    alert('Funcionalidad de edición - Coming soon');
+    alert('Funcionalidad de edici+�n - Coming soon');
 }
 
 async function loadOrders() {
@@ -1063,7 +1061,7 @@ async function loadPlans() {
     const suscripciones = await api.get('/suscripciones?cliente_ci=' + clienteId);
     const activeSub = suscripciones.find(function(s) { return s.estado === 'activa'; });
 
-    // Yo calculo los días restantes de la suscripción activa
+    // Calcular d+�as restantes si hay suscripci+�n activa
     let diasRestantes = 0;
     let currentPlanDiscount = 0;
     if (activeSub) {
@@ -1071,77 +1069,52 @@ async function loadPlans() {
         const fechaActual = new Date();
         diasRestantes = Math.max(0, Math.ceil((fechaFin - fechaActual) / (1000 * 60 * 60 * 24)));
 
-        // Yo determino el descuento según el nombre del plan en la BD
+        // Determinar descuento seg+�n plan
         const planName = (activeSub.plan_nombre || '').toLowerCase();
         if (planName.includes('premium')) {
             currentPlanDiscount = 20;
-        } else if (planName.includes('basic')) {
+        } else if (planName.includes('basic') || planName.includes('basico')) {
             currentPlanDiscount = 5;
         }
     }
 
-    // Yo renderizo los planes de suscripción con su información
+    // Renderizar planes con dise+�o mejorado
     let html = '';
     planes.forEach(function(p) {
-        // Yo normalizo el nombre del plan a minúsculas para comparar
         const planName = (p.nombre || '').toLowerCase();
         const hasPlan = activeSub && activeSub.plan_id === p.id;
 
-        // Yo determino el tipo de plan según el nombre en la BD
+        // Estilo seg+�n tipo de plan
         const isPremium = planName.includes('premium');
-        const isBasic = planName.includes('basic');
-        const isFree = planName.includes('free') || p.precio === 0;
+        const isBasic = planName.includes('basic') || planName.includes('basico');
+        const cardClass = isPremium ? 'border-warning' : (isBasic ? 'border-info' : '');
+        const badge = isPremium ? '<span class="badge bg-warning text-dark">20% dto</span>' :
+                     isBasic ? '<span class="badge bg-info">5% dto</span>' : '';
+        const btnClass = isPremium ? 'btn-warning text-dark' : 'btn-primary';
 
-        // Yo configuro el estilo visual según el tipo de plan
-        let cardClass = 'border-secondary';
-        let badge = '';
-        let btnClass = 'btn-primary';
-        let beneficios = '';
-        let btnText = 'Suscribirse';
+        // Mostrar beneficios
+        const beneficios = isPremium ?
+            '<ul class="text-start small text-muted"><li>20% descuento en todas las compras</li><li>Acceso prioritario</li><li> Soporte exclusivo</li></ul>' :
+            '<ul class="text-start small text-muted"><li>5% descuento en todas las compras</li></ul>';
 
-        if (isFree) {
-            // Yo configuro el estilo para plan gratuito
-            cardClass = 'border-success';
-            badge = '<span class="badge bg-success">0% dto</span>';
-            btnClass = 'btn-success';
-            beneficios = '<ul class="text-start small text-muted"><li>Acceso básico</li><li>Sin descuento</li></ul>';
-            btnText = 'Activar Gratis';
-        } else if (isPremium) {
-            // Yo configuro el estilo para plan premium (20% descuento)
-            cardClass = 'border-warning';
-            badge = '<span class="badge bg-warning text-dark">20% dto</span>';
-            btnClass = 'btn-warning text-dark';
-            beneficios = '<ul class="text-start small text-muted"><li>20% descuento</li><li>Acceso prioritario</li><li>Soporte exclusivo</li></ul>';
-            btnText = 'Suscribirse';
-        } else if (isBasic) {
-            // Yo configuro el estilo para plan basic (5% descuento)
-            cardClass = 'border-info';
-            badge = '<span class="badge bg-info">5% dto</span>';
-            btnClass = 'btn-info text-dark';
-            beneficios = '<ul class="text-start small text-muted"><li>5% descuento</li></ul>';
-            btnText = 'Suscribirse';
-        }
-
-        // Yo construyo el HTML de la card del plan
-        // Uso el nombre original (planName) para enviar al backend
         html += '<div class="col-md-6 mb-3">' +
-            '<div class="card h-100 p-4 text-center ' + (hasPlan ? 'border-success' : cardClass) + '">' +
+            '<div class="card h-100 p-4 text-center ' + (hasPlan ? 'border-success ' + (isPremium ? 'bg-light' : '') : cardClass) + '">' +
             badge +
             '<h4 class="mt-2">' + p.nombre + '</h4>' +
-            '<p class="text-muted small">' + (p.descripcion || 'Plan de suscripción') + '</p>' +
+            '<p class="text-muted small">' + p.descripcion + '</p>' +
             beneficios +
-            '<div style="font-size:1.8rem;font-weight:700;">' + (p.precio === 0 ? 'GRATIS' : 'Bs ' + p.precio) + '</div>' +
-            '<small class="text-muted">' + (p.duracion_dias ? 'Válido por ' + p.duracion_dias + ' días' : '') + '</small>' +
+            '<div style="font-size:1.8rem;font-weight:700;">' + (p.precio === 0 ? 'Free' : 'Bs ' + p.precio) + '</div>' +
+            '<small class="text-muted">V+�lido por ' + p.duracion_dias + ' d+�as</small>' +
             '<div class="mt-3">' +
             (hasPlan ? '<button class="btn btn-success w-100" disabled><i class="bi bi-check-circle"></i> Plan Activo</button>' :
-            '<button class="btn ' + btnClass + ' w-100" onclick="subscribe(\'' + planName + '\', ' + p.precio + ')">' +
-            '<i class="bi bi-credit-card"></i> ' + btnText + '</button>') +
+            '<button class="btn ' + btnClass + ' w-100" onclick="subscribe(' + p.id + ', ' + p.precio + ')">' +
+            '<i class="bi bi-credit-card"></i> Suscribirse</button>') +
             '</div></div></div>';
     });
     const plansListEl = document.getElementById('plansList');
     if (plansListEl) plansListEl.innerHTML = html;
 
-    // Mostrar suscripción actual con días restantes
+    // Mostrar suscripci+�n actual con d+�as restantes
     const currentSubEl = document.getElementById('currentSubscription');
     if (currentSubEl) {
         if (activeSub) {
@@ -1157,41 +1130,35 @@ async function loadPlans() {
                 '<div>' + new Date(activeSub.fecha_inicio).toLocaleDateString() + '</div>' +
                 '<small class="text-muted">Hasta:</small>' +
                 '<div>' + new Date(activeSub.fecha_fin).toLocaleDateString() + '</div>' +
-                (diasRestantes > 0 ? '<div class="badge bg-success mt-2">' + diasRestantes + ' días restantes</div>' : '') +
+                (diasRestantes > 0 ? '<div class="badge bg-success mt-2">' + diasRestantes + ' d+�as restantes</div>' : '') +
                 '</div></div></div>';
         } else {
             currentSubEl.innerHTML =
                 '<div class="alert alert-info p-4">' +
-                '<h5><i class="bi bi-info-circle"></i> Sin suscripción activa</h5>' +
-                '<p class="mb-0">¡Suscríbete para obtener descuentos en todas tus compras!</p></div>';
+                '<h5><i class="bi bi-info-circle"></i> Sin suscripci+�n activa</h5>' +
+                '<p class="mb-0">-�Suscr+�bete para obtener descuentos en todas tus compras!</p></div>';
         }
     }
 }
 
-async function subscribe(planNombre, precio) {
-    // Yo recibo el nombre del plan desde el botón (free, basic, premium)
+async function subscribe(planId, precio) {
     if (!currentUser) {
-        showPaymentError('Debe iniciar sesión');
+        showPaymentError('Debe iniciar sesi+�n');
         return;
     }
 
-    if (!planNombre) {
-        showPaymentError('Plan no válido');
-        return;
+    let planNombre = 'basico';
+    if (planId == 2 || String(planId).toLowerCase().includes('premium')) {
+        planNombre = 'premium';
     }
 
-    // Yo normalizo el nombre del plan a minúsculas
-    planNombre = planNombre.toLowerCase();
-    console.log("Yo envío el plan:", planNombre);
+    console.log("Enviando plan:", planNombre);
 
-    // Yo muestro el loader mientras proceso
     showPaymentLoader('Procesando...');
 
-    // Yo obtengo el ID del cliente del usuario actual
     const clienteCi = currentUser?.cliente?.ci || currentUser?.id;
 
     try {
-        // Yo llamo al backend para crear la suscripción
         const response = await fetch(API_URL + '/paypal/crear-suscripcion', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1202,78 +1169,39 @@ async function subscribe(planNombre, precio) {
 
         if (!response.ok) {
             const errorData = await response.json();
-            console.error("Yo manejé el error HTTP:", errorData);
-            showPaymentError(errorData.message || 'Error en suscripción');
+            console.error("Error HTTP:", errorData);
+            showPaymentError(errorData.message || 'Error en suscripci+�n');
             return;
         }
 
         const result = await response.json();
-        console.log("Yo recibí la respuesta:", result);
+        console.log("Respuesta:", result);
 
-        // Yo verifico si es un plan gratuito (se activa sin PayPal)
         if (result.tipo === 'gratis') {
-            showToastMessage('¡Plan gratuito activado!', 'success');
+            showToastMessage('-�Suscripci+�n activada!', 'success');
             showPage('subscription');
             loadPlans();
             loadUserDiscount();
             return;
         }
 
-        // Yo verifico si es un plan de pago (basic o premium)
-        // Si tiene approveUrl,redirijo a PayPal para completar el pago
-        if (result.success && result.approveUrl) {
-            // Yo guardo la información del plan pendiente en localStorage
-            localStorage.setItem('pendingSubscription', JSON.stringify({
-                plan: planNombre,
-                precio: precio
-            }));
-            // Yo redirijo al usuario a PayPal
-            window.location.href = result.approveUrl;
-        } else {
-            // Yo muestro el error si algo falla
-            showPaymentError(result.message || 'Error al procesar');
-        }
-    } catch (error) {
-        hidePaymentLoader();
-        console.error("Yo atrapé un error:", error);
-        showPaymentError('Error de conexión');
-    }
-}
-        if (result.tipo === 'gratis') {
-            showToastMessage('¡Plan gratuito activado!', 'success');
-            showPage('subscription');
-            loadPlans();
-            loadUserDiscount();
-            return;
-        }
-
-        // Planes de pago - redirigir a PayPal
         if (result.success && result.approveUrl) {
             localStorage.setItem('pendingSubscription', JSON.stringify({
                 plan: planNombre,
                 precio: precio
             }));
             window.location.href = result.approveUrl;
-        } else {
-            showPaymentError(result.message || 'Error al procesar');
-        }
-    } catch (error) {
-        hidePaymentLoader();
-        console.error("Error:", error);
-        showPaymentError('Error de conexión');
-    }
-}
         } else {
             showPaymentError(result.message || result.error || 'Error al procesar');
         }
     } catch (error) {
         hidePaymentLoader();
         console.error("Error:", error);
-        showPaymentError('Error de conexión');
+        showPaymentError('Error de conexi+�n');
     }
 }
 
-// Procesar suscripción luego de completar pago en PayPal
+// Procesar suscripci+�n luego de completar pago en PayPal
 async function processPendingSubscription() {
     const pendingData = localStorage.getItem('pendingSubscription');
     if (!pendingData) return;
@@ -1281,37 +1209,37 @@ async function processPendingSubscription() {
     const data = JSON.parse(pendingData);
     localStorage.removeItem('pendingSubscription');
 
-    // Validar que usuario esté logueado
+    // Validar que usuario est+� logueado
     if (!currentUser) {
-        showPaymentError('Debe iniciar sesión');
+        showPaymentError('Debe iniciar sesi+�n');
         return;
     }
 
     try {
-        // Crear suscripción en la base de datos
+        // Crear suscripci+�n en la base de datos
         const result = await api.post('/suscripciones', {
             plan_id: data.planId,
             cliente_ci: currentUser?.cliente?.ci || currentUser?.id
         });
 
         if (result.success) {
-            // Redirigir a página de suscripción
+            // Redirigir a p+�gina de suscripci+�n
             showPage('subscription');
             loadPlans();
 
-            // Mostrar mensaje de éxito
+            // Mostrar mensaje de +�xito
             const currentSubEl = document.getElementById('currentSubscription');
             if (currentSubEl) {
                 currentSubEl.innerHTML =
                     '<div class="alert alert-success p-4">' +
-                    '<h5><i class="bi bi-check-circle-fill"></i> ¡Suscripción activada!</h5>' +
-                    '<p class="mb-0">Tu suscripción ha sido activada correctamente.</p></div>';
+                    '<h5><i class="bi bi-check-circle-fill"></i> -�Suscripci+�n activada!</h5>' +
+                    '<p class="mb-0">Tu suscripci+�n ha sido activada correctamente.</p></div>';
             }
         } else {
-            showPaymentError(result.message || 'Error al activar suscripción');
+            showPaymentError(result.message || 'Error al activar suscripci+�n');
         }
     } catch (error) {
-        showPaymentError('Error al activar suscripción: ' + error.message);
+        showPaymentError('Error al activar suscripci+�n: ' + error.message);
     }
 }
 
@@ -1321,7 +1249,7 @@ function logout() {
     window.location.href = '../login.html';
 }
 
-// Cargar sucursales para el cliente - versión interactiva
+// Cargar sucursales para el cliente - versi+�n interactiva
 async function loadSucursales() {
     const container = document.getElementById('sucursalesGrid');
     if (!container) return;
@@ -1345,8 +1273,8 @@ async function loadSucursales() {
                 '<div class="card h-100 sucursal-card" style="cursor:pointer;" onclick="loadProductosSucursal(' + s.cod + ', \'' + s.nombre + '\')">' +
                 '<div class="card-body">' +
                 '<h5 class="card-title"><i class="bi bi-shop-window"></i> ' + s.nombre + '</h5>' +
-                '<p class="card-text"><i class="bi bi-geo-alt"></i> ' + (s.direccion || 'Sin dirección') + '</p>' +
-                '<p class="card-text"><i class="bi bi-phone"></i> ' + (s.numero_telefono || 'Sin teléfono') + '</p>' +
+                '<p class="card-text"><i class="bi bi-geo-alt"></i> ' + (s.direccion || 'Sin direcci+�n') + '</p>' +
+                '<p class="card-text"><i class="bi bi-phone"></i> ' + (s.numero_telefono || 'Sin tel+�fono') + '</p>' +
                 '<p class="card-text"><span class="badge ' + (stockTotal > 0 ? 'bg-success' : 'bg-secondary') + '">Stock total: ' + stockTotal + '</span></p>' +
                 '<p class="text-primary small"><i class="bi bi-hand-index"></i> Click para ver productos</p>' +
                 '</div></div></div>';
@@ -1359,13 +1287,13 @@ async function loadSucursales() {
     }
 }
 
-// Cargar productos de una sucursal específica
-// Mejora: mostrar todos los productos (con stock y sin stock), botón comprar solo si hay stock
+// Cargar productos de una sucursal espec+�fica
+// Mejora: mostrar todos los productos (con stock y sin stock), bot+�n comprar solo si hay stock
 async function loadProductosSucursal(sucursalCod, sucursalNombre) {
     const container = document.getElementById('sucursalesGrid');
     if (!container) return;
 
-    // Mostrar botón de volver y estado de carga
+    // Mostrar bot+�n de volver y estado de carga
     container.innerHTML = '<div class="col-12 mb-3">' +
         '<button class="btn btn-outline-secondary" onclick="loadSucursales()"><i class="bi bi-arrow-left"></i> Volver a sucursales</button>' +
         '<h4 class="d-inline-block ms-3">Productos en: ' + sucursalNombre + '</h4></div>' +
@@ -1375,10 +1303,10 @@ async function loadProductosSucursal(sucursalCod, sucursalNombre) {
         // Obtener detalle de la sucursal (todos los productos)
         const detalle = await api.get('/sucursales/' + sucursalCod + '/detalle');
 
-        // Obtener información de productos
+        // Obtener informaci+�n de productos
         const todosProductos = await api.get('/productos');
 
-        // Crear mapa de productos por código
+        // Crear mapa de productos por c+�digo
         const productosMap = {};
         todosProductos.forEach(function(p) { productosMap[p.codigo] = p; });
 
@@ -1401,14 +1329,14 @@ async function loadProductosSucursal(sucursalCod, sucursalNombre) {
             const stock = dp.stock || 0;
             const hasStock = stock > 0;
 
-            // Estilo según stock
+            // Estilo seg+�n stock
             const stockBadge = hasStock ?
                 '<span class="badge bg-success">Stock: ' + stock + '</span>' :
                 '<span class="badge bg-danger"><i class="bi bi-x-circle"></i> AGOTADO</span>';
 
             const btnDisabled = hasStock ?
                 '<button class="btn btn-primary btn-sm w-100" onclick="agregarDesdeSucursal(' + dp.cod_producto + ', ' + sucursalCod + ', ' + stock + ')">' +
-                '<i class="bi bi-cart-plus"></i> Añadir al carrito</button>' :
+                '<i class="bi bi-cart-plus"></i> A+�adir al carrito</button>' :
                 '<button class="btn btn-secondary btn-sm w-100" disabled>' +
                 '<i class="bi bi-cart-x"></i> No disponible</button>';
 
@@ -1436,7 +1364,7 @@ async function loadProductosSucursal(sucursalCod, sucursalNombre) {
     }
 }
 
-// Función para agregar producto directamente desde la vista de sucursal
+// Funci+�n para agregar producto directamente desde la vista de sucursal
 function agregarDesdeSucursal(codProducto, sucursalCod, stockMax) {
     // Buscar producto en la lista de productos
     api.get('/productos/' + codProducto).then(function(producto) {
@@ -1455,7 +1383,7 @@ function agregarDesdeSucursal(codProducto, sucursalCod, stockMax) {
         const cantidad = parseInt(prompt('Cantidad (stock disponible: ' + stockMax + '):', '1'));
         if (!cantidad || cantidad < 1) return;
         if (cantidad > stockMax) {
-            alert('Cantidad excede stock disponible. Máximo: ' + stockMax);
+            alert('Cantidad excede stock disponible. M+�ximo: ' + stockMax);
             return;
         }
 

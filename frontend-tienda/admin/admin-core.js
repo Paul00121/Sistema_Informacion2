@@ -5,7 +5,7 @@
 
 console.log("JS admin-core.js cargado");
 
-const API_URL = 'http://localhost:8090/api';
+// API_URL now comes from config.js (CONFIG.API_URL)
 
 // Helper para sanitizar texto básico (evita XSS básico)
 function sanitizeText(text) {
@@ -21,14 +21,35 @@ function setElementText(id, value) {
     if (el) el.textContent = value;
 }
 
+// Funciones auxiliares para configuración de gráficos
+function setVal(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+}
+
+function getVal(id) {
+    const el = document.getElementById(id);
+    return el?.value || '';
+}
+
+function setCheck(id, checked) {
+    const el = document.getElementById(id);
+    if (el) el.checked = checked;
+}
+
+function getCheck(id) {
+    const el = document.getElementById(id);
+    return el?.checked || false;
+}
+
 async function cargarDashboard() {
     try {
         console.log("Cargando dashboard...");
         
-        const resVentas = await fetch(API_URL + '/ventas/completadas', { cache: 'no-store' });
+        const resVentas = await fetch(CONFIG.API_URL + '/ventas/completadas', { cache: 'no-store' });
         const dataVentas = await resVentas.json();
         
-        const resIngresos = await fetch(API_URL + '/ingresos-completados', { cache: 'no-store' });
+        const resIngresos = await fetch(CONFIG.API_URL + '/ingresos-completados', { cache: 'no-store' });
         const dataIngresos = await resIngresos.json();
         
         console.log("Ventas API raw:", dataVentas);
@@ -103,13 +124,18 @@ class APIClient {
 }
 
 class DashboardManager {
-    constructor(api) {
+    constructor(api, chartConfigManager = null) {
         this.api = api;
         this.charts = {};
+        this.chartConfigManager = chartConfigManager;
     }
 
     async load() {
         await this.loadStats();
+        await this.loadVentasPorCategoria();
+        await this.loadVentasMensuales();
+        await this.loadVentasSucursal();
+        await this.loadUltimasVentas();
     }
 
     async loadStats() {
@@ -258,7 +284,58 @@ class DashboardManager {
         return classes[estado] || 'secondary';
     }
 
+    async loadTopClientesChart() {
+        try {
+            const data = await this.api.get('/reportes/top-clientes').catch(() => []);
+            
+            const labels = data.map(item => item.nombre || item.cliente || 'Sin cliente');
+            const values = data.map(item => parseInt(item.total) || 0);
+            
+            this.createBarChart('topClientesChart', labels, values, 'Top Clientes');
+        } catch (error) {
+            console.error('Error loading top clientes:', error);
+            this.createEmptyBarChart('topClientesChart');
+        }
+    }
+
+    async loadTopClientes5Chart() {
+        try {
+            const data = await this.api.get('/reportes/top-clientes?limit=5').catch(() => []);
+            
+            const labels = data.map(item => item.nombre || item.cliente || 'Sin cliente');
+            const values = data.map(item => parseInt(item.total) || 0);
+            
+            this.createBarChart('topClientes5Chart', labels, values, 'Top 5 Clientes');
+        } catch (error) {
+            console.error('Error loading top 5 clientes:', error);
+            this.createEmptyBarChart('topClientes5Chart');
+        }
+    }
+
+    async loadVentasSucursal() {
+        try {
+            const data = await this.api.get('/reportes/ventas-por-sucursal').catch(() => []);
+            
+            const labels = data.map(item => item.sucursal || item.nombre || 'Sin sucursal');
+            const values = data.map(item => parseInt(item.total) || 0);
+            
+            this.createBarChart('chartVentasSucursal', labels, values, 'Ventas por Sucursal');
+        } catch (error) {
+            console.error('Error loading ventas sucursal:', error);
+            this.createEmptyBarChart('chartVentasSucursal');
+        }
+    }
+
     createPieChart(canvasId, labels, data, label) {
+        // Destruir cualquier chart existente primero
+        const existingChart = Chart.getChart(canvasId);
+        if (existingChart) existingChart.destroy();
+        
+        if (this.chartConfigManager) {
+            this.chartConfigManager.createChart(canvasId, labels, data, label, { type: 'doughnut' });
+            return;
+        }
+        
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
@@ -298,6 +375,15 @@ class DashboardManager {
     }
 
     createLineChart(canvasId, labels, data, label) {
+        // Destruir cualquier chart existente primero
+        const existingChart = Chart.getChart(canvasId);
+        if (existingChart) existingChart.destroy();
+        
+        if (this.chartConfigManager) {
+            this.chartConfigManager.createChart(canvasId, labels, data, label, { type: 'line' });
+            return;
+        }
+        
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
@@ -336,6 +422,15 @@ class DashboardManager {
     }
 
     createBarChart(canvasId, labels, data, label) {
+        // Destruir cualquier chart existente primero
+        const existingChart = Chart.getChart(canvasId);
+        if (existingChart) existingChart.destroy();
+        
+        if (this.chartConfigManager) {
+            this.chartConfigManager.createChart(canvasId, labels, data, label, { type: 'bar' });
+            return;
+        }
+        
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
@@ -381,6 +476,529 @@ class DashboardManager {
 
     createEmptyBarChart(canvasId) {
         this.createBarChart(canvasId, ['Sin datos'], [0], '');
+    }
+}
+
+class ChartConfigManager {
+    constructor(dashboardManager) {
+        this.dashboardManager = dashboardManager;
+        this.chartConfigs = new Map();
+        this.currentChartId = null;
+        this.charts = new Map();
+        
+        this.palettes = {
+            default: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16'],
+            blue: ['#1e40af', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#1d4ed8', '#2563eb', '#60a5fa'],
+            green: ['#14532d', '#15803d', '#16a34a', '#22c55e', '#4ade80', '#86efac', '#166534', '#16a34a'],
+            red: ['#7f1d1d', '#b91c1c', '#dc2626', '#ef4444', '#f87171', '#991b1b', '#c2410c', '#ea580c'],
+            purple: ['#581c87', '#7e22ce', '#9333ea', '#a855f7', '#c084fc', '#6b21a8', '#8b5cf6', '#a78bfa'],
+            warm: ['#ea580c', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4'],
+            pastel: ['#fcd9bd', '#fde68a', '#bbf7d0', '#bfdbfe', '#ddd6fe', '#fbcfe8', '#e9d5ff', '#c7d2fe'],
+            ocean: ['#0c4a6e', '#0369a1', '#075985', '#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd', '#e0f2fe']
+        };
+        
+        this.defaultConfig = {
+            type: 'bar',
+            orientation: 'vertical',
+            order: 'desc',
+            limit: 10,
+            invertData: false,
+            hideZeros: false,
+            palette: 'default',
+            colors: ['#4f46e5'],
+            colorPrincipal: '#4f46e5',
+            customColors: '',
+            transparency: 100,
+            showLegend: true,
+            showLabels: true,
+            showTitle: true,
+            animate: true,
+            interactive: true,
+            legendPos: 'bottom',
+            xShow: true,
+            xGrid: true,
+            yShow: true,
+            yGrid: true,
+            yBeginZero: true,
+            yMin: null,
+            yMax: null
+        };
+        
+        this.init();
+    }
+    
+    init() {
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.config-chart-btn');
+            if (btn) {
+                this.openConfigModal(btn.dataset.chartId);
+            }
+        });
+        
+        document.addEventListener('click', (e) => {
+            const menuBtn = e.target.closest('.config-menu-btn');
+            if (menuBtn) {
+                const target = menuBtn.dataset.target;
+                document.querySelectorAll('.config-menu-btn').forEach(btn => btn.classList.remove('active'));
+                menuBtn.classList.add('active');
+                document.querySelectorAll('.config-section').forEach(section => section.classList.add('d-none'));
+                document.getElementById(target)?.classList.remove('d-none');
+            }
+        });
+        
+        document.getElementById('cfgColorPrincipal')?.addEventListener('input', (e) => {
+            const hexInput = document.getElementById('cfgColorHex');
+            if (hexInput) hexInput.value = e.target.value;
+        });
+        
+        document.getElementById('cfgColorHex')?.addEventListener('input', (e) => {
+            const color = e.target.value;
+            if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
+                document.getElementById('cfgColorPrincipal').value = color;
+            }
+        });
+        
+        document.getElementById('cfgTransparency')?.addEventListener('input', (e) => {
+            const val = document.getElementById('cfgTransparencyVal');
+            if (val) val.textContent = e.target.value + '%';
+        });
+        
+        document.addEventListener('click', (e) => {
+            const card = e.target.closest('.chart-type-card');
+            if (card) {
+                const type = card.dataset.type;
+                document.getElementById('cfgChartType').value = type;
+                document.querySelectorAll('.chart-type-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+            }
+        });
+        
+        document.getElementById('cfgChartType')?.addEventListener('change', (e) => {
+            const type = e.target.value;
+            document.querySelectorAll('.chart-type-card').forEach(c => {
+                c.classList.toggle('active', c.dataset.type === type);
+            });
+            this.applyLiveConfig();
+        });
+        
+        document.getElementsByName('cfgOrientation').forEach(r => {
+            r.addEventListener('change', () => this.applyLiveConfig());
+        });
+        
+        document.getElementById('cfgPalette')?.addEventListener('change', () => this.applyLiveConfig());
+        document.getElementById('cfgColorPrincipal')?.addEventListener('input', () => this.applyLiveConfig());
+        document.getElementById('cfgCustomColors')?.addEventListener('input', () => this.applyLiveConfig());
+        document.getElementById('cfgOrder')?.addEventListener('change', () => this.applyLiveConfig());
+        document.getElementById('cfgLimit')?.addEventListener('change', () => this.applyLiveConfig());
+        
+        ['cfgShowLegend', 'cfgShowLabels', 'cfgShowTitle', 'cfgAnimate', 'cfgInteractive'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', () => this.applyLiveConfig());
+        });
+        
+        ['cfgXShow', 'cfgXGrid', 'cfgYShow', 'cfgYGrid', 'cfgYBeginZero'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', () => this.applyLiveConfig());
+        });
+        
+        document.getElementById('cfgLegendPos')?.addEventListener('change', () => this.applyLiveConfig());
+        
+        document.getElementById('applyChartConfig')?.addEventListener('click', () => {
+            this.applyConfiguration();
+        });
+        
+        document.getElementById('resetChartConfig')?.addEventListener('click', () => {
+            this.resetConfiguration();
+        });
+        
+        setTimeout(() => this.initChartButtons(), 1000);
+    }
+    
+    initChartButtons() {
+        document.querySelectorAll('.chart-card canvas').forEach(canvas => {
+            const chartId = canvas.id;
+            const card = canvas.closest('.chart-card');
+            if (card && !card.querySelector('.config-chart-btn')) {
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-sm btn-outline-secondary config-chart-btn position-absolute top-0 end-0 m-2';
+                btn.dataset.chartId = chartId;
+                btn.title = 'Configurar';
+                btn.innerHTML = '<i class="bi bi-gear"></i>';
+                card.style.position = 'relative';
+                card.appendChild(btn);
+            }
+        });
+    }
+    
+    openConfigModal(chartId) {
+        if (!chartId) return;
+        
+        this.currentChartId = chartId;
+        
+        const chartIdInput = document.getElementById('configChartId');
+        if (chartIdInput) chartIdInput.value = chartId;
+        
+        const config = this.getConfig(chartId);
+        this.loadConfigToModal(config);
+        
+        const modalEl = document.getElementById('chartConfigModal');
+        if (modalEl) {
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        }
+    }
+    
+    loadConfigToModal(config) {
+        setVal('cfgChartType', config.type);
+        setVal('cfgColorPrincipal', config.colorPrincipal || '#4f46e5');
+        setVal('cfgColorHex', config.colorPrincipal || '#4f46e5');
+        setVal('cfgCustomColors', config.customColors || '');
+        setVal('cfgPalette', config.palette || 'default');
+        setVal('cfgOrder', config.order || 'desc');
+        setVal('cfgLimit', config.limit || 10);
+        setVal('cfgTransparency', config.transparency || 100);
+        setVal('cfgLegendPos', config.legendPos || 'bottom');
+        
+        setCheck('cfgInvertData', config.invertData);
+        setCheck('cfgHideZeros', config.hideZeros);
+        setCheck('cfgShowLegend', config.showLegend);
+        setCheck('cfgShowLabels', config.showLabels);
+        setCheck('cfgShowTitle', config.showTitle);
+        setCheck('cfgAnimate', config.animate);
+        setCheck('cfgInteractive', config.interactive);
+        setCheck('cfgXShow', config.xShow);
+        setCheck('cfgXGrid', config.xGrid);
+        setCheck('cfgYShow', config.yShow);
+        setCheck('cfgYGrid', config.yGrid);
+        setCheck('cfgYBeginZero', config.yBeginZero);
+        
+        document.querySelectorAll('.chart-type-card').forEach(c => {
+            c.classList.toggle('active', c.dataset.type === config.type);
+        });
+        
+        const transparencyVal = document.getElementById('cfgTransparencyVal');
+        if (transparencyVal) transparencyVal.textContent = (config.transparency || 100) + '%';
+    }
+    
+    getConfigFromModal() {
+        const customColors = getVal('cfgCustomColors');
+        let colors = [];
+        if (customColors) {
+            colors = customColors.split('\n').map(c => c.trim()).filter(c => c);
+        }
+        if (colors.length === 0) {
+            const palette = getVal('cfgPalette') || 'default';
+            colors = [...(this.palettes[palette] || this.palettes.default)];
+        }
+        
+        let orientation = 'vertical';
+        const oriRadios = document.getElementsByName('cfgOrientation');
+        oriRadios.forEach(r => { if (r.checked) orientation = r.value; });
+        
+        return {
+            type: getVal('cfgChartType') || 'bar',
+            orientation: orientation,
+            order: getVal('cfgOrder') || 'desc',
+            limit: parseInt(getVal('cfgLimit')) || 10,
+            invertData: getCheck('cfgInvertData'),
+            hideZeros: getCheck('cfgHideZeros'),
+            palette: getVal('cfgPalette') || 'default',
+            colors: colors,
+            colorPrincipal: getVal('cfgColorPrincipal') || '#4f46e5',
+            customColors: getVal('cfgCustomColors'),
+            transparency: parseInt(getVal('cfgTransparency')) || 100,
+            showLegend: getCheck('cfgShowLegend'),
+            showLabels: getCheck('cfgShowLabels'),
+            showTitle: getCheck('cfgShowTitle'),
+            animate: getCheck('cfgAnimate'),
+            interactive: getCheck('cfgInteractive'),
+            legendPos: getVal('cfgLegendPos') || 'bottom',
+            xShow: getCheck('cfgXShow'),
+            xGrid: getCheck('cfgXGrid'),
+            yShow: getCheck('cfgYShow'),
+            yGrid: getCheck('cfgYGrid'),
+            yBeginZero: getCheck('cfgYBeginZero'),
+            yMin: getVal('cfgYMin') ? parseFloat(getVal('cfgYMin')) : null,
+            yMax: getVal('cfgYMax') ? parseFloat(getVal('cfgYMax')) : null
+        };
+    }
+    
+    applyConfiguration() {
+        if (!this.currentChartId) return;
+        
+        const config = this.getConfigFromModal();
+        this.chartConfigs.set(this.currentChartId, config);
+        
+        bootstrap.Modal.getInstance(document.getElementById('chartConfigModal'))?.hide();
+        
+        this.reloadChart();
+    }
+    
+    async reloadChart() {
+        if (!this.currentChartId) return;
+        
+        this.destroyChart(this.currentChartId);
+        
+        switch (this.currentChartId) {
+            case 'topClientesChart':
+                await this.dashboardManager.loadTopClientesChart();
+                break;
+            case 'topClientes5Chart':
+                await this.dashboardManager.loadTopClientes5Chart();
+                break;
+            case 'chartVentasSucursal':
+                await this.dashboardManager.loadVentasSucursal();
+                break;
+            case 'chartVentasCategoria':
+                await this.dashboardManager.loadVentasPorCategoria();
+                break;
+            case 'chartVentasMensuales':
+                await this.dashboardManager.loadVentasMensuales();
+                break;
+            case 'chartProductosMarca':
+                await this.dashboardManager.loadProductosPorMarca();
+                break;
+            case 'chartProductosIndustria':
+                await this.dashboardManager.loadProductosPorIndustria();
+                break;
+            case 'chartVentasFecha':
+                await this.dashboardManager.loadVentasPorFecha();
+                break;
+            case 'chartVentasTotalesMensuales':
+                await this.dashboardManager.loadVentasMensuales();
+                break;
+            default:
+                console.warn('Gráfico no reconocido:', this.currentChartId);
+        }
+    }
+    
+    destroyChart(chartId) {
+        const chart = Chart.getChart(chartId);
+        if (chart) chart.destroy();
+        this.charts.delete(chartId);
+    }
+    
+    getConfig(chartId) {
+        return this.chartConfigs.get(chartId) || { ...this.defaultConfig };
+    }
+    
+    createChart(canvasId, labels, data, title, overrideConfig = {}) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return null;
+        
+        this.destroyChart(canvasId);
+        
+        const config = { ...this.getConfig(canvasId), ...overrideConfig };
+        
+        let sortedLabels = [...labels];
+        let sortedData = [...data];
+        
+        if (config.hideZeros) {
+            const validIndices = sortedData.map((v, i) => v > 0 ? i : -1).filter(i => i >= 0);
+            sortedLabels = validIndices.map(i => labels[i]);
+            sortedData = validIndices.map(i => data[i]);
+        }
+        
+        if (config.order !== 'none') {
+            const indices = sortedData.map((_, i) => i).sort((a, b) => 
+                config.order === 'desc' ? sortedData[b] - sortedData[a] : sortedData[a] - sortedData[b]
+            );
+            sortedLabels = indices.map(i => labels[i]);
+            sortedData = indices.map(i => data[i]);
+        }
+        
+        if (config.invertData) {
+            sortedLabels = sortedLabels.reverse();
+            sortedData = sortedData.reverse();
+        }
+        
+        sortedLabels = sortedLabels.slice(0, config.limit);
+        sortedData = sortedData.slice(0, config.limit);
+        
+        if (sortedData.length === 0 || sortedData.every(v => v === 0)) {
+            sortedLabels = ['Sin datos'];
+            sortedData = [1];
+        }
+        
+        let colors = [...config.colors];
+        while (colors.length < sortedData.length) {
+            colors = [...colors, ...colors];
+        }
+        colors = colors.slice(0, sortedData.length);
+        
+        if (config.transparency < 100) {
+            colors = colors.map(c => this.addAlpha(c, config.transparency / 100));
+        }
+        
+        const chartType = config.type;
+        const isBarChart = ['bar', 'line'].includes(chartType);
+        const isPieChart = ['doughnut', 'pie', 'polarArea', 'radar'].includes(chartType);
+        
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: config.animate ? { duration: 750, easing: 'easeInOutQuart' } : false,
+            indexAxis: config.orientation === 'horizontal' ? 'y' : 'x',
+            
+            plugins: {
+                legend: {
+                    display: config.showLegend && !isBarChart,
+                    position: config.legendPos || 'bottom'
+                },
+                title: {
+                    display: config.showTitle && !!title,
+                    text: title,
+                    font: { size: 16, weight: 'bold' },
+                    padding: 20
+                },
+                tooltip: {
+                    enabled: config.interactive !== false
+                },
+                datalabels: config.showLabels ? {
+                    display: true,
+                    anchor: 'end',
+                    align: 'end',
+                    formatter: (value) => value,
+                    font: { weight: 'bold' }
+                } : false
+            }
+        };
+        
+        if (isBarChart) {
+            chartOptions.scales = {
+                x: {
+                    display: config.xShow !== false,
+                    grid: { display: config.xGrid !== false }
+                },
+                y: {
+                    display: config.yShow !== false,
+                    grid: { display: config.yGrid !== false },
+                    beginAtZero: config.yBeginZero !== false,
+                    min: config.yMin,
+                    max: config.yMax
+                }
+            };
+        }
+        
+        const chartData = {
+            labels: sortedLabels,
+            datasets: [{
+                data: sortedData,
+                backgroundColor: chartType === 'line' ? 'transparent' : colors,
+                borderColor: chartType === 'line' ? colors[0] : colors,
+                borderWidth: chartType === 'line' ? 2 : 1,
+                fill: chartType === 'line',
+                tension: 0.4,
+                pointBackgroundColor: colors[0],
+                pointBorderColor: '#fff',
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        };
+        
+        const chart = new Chart(ctx, {
+            type: chartType,
+            data: chartData,
+            options: chartOptions
+        });
+        
+        this.charts.set(canvasId, chart);
+        return chart;
+    }
+    
+    addAlpha(hex, alpha) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    
+    applyLiveConfig() {
+        if (!this.currentChartId) return;
+        
+        const config = this.getConfigFromModal();
+        this.chartConfigs.set(this.currentChartId, config);
+        this.updateChartLive(config);
+    }
+    
+    updateChartLive(config) {
+        if (!this.currentChartId) return;
+        
+        const chartId = this.currentChartId;
+        const chart = Chart.getChart(chartId);
+        if (!chart) return;
+        
+        const labels = chart.data.labels || [];
+        let data = chart.data.datasets[0].data || [];
+        
+        let sortedLabels = [...labels];
+        let sortedData = [...data];
+        
+        if (config.hideZeros) {
+            const validIndices = sortedData.map((v, i) => v > 0 ? i : -1).filter(i => i >= 0);
+            sortedLabels = validIndices.map(i => labels[i]);
+            sortedData = validIndices.map(i => data[i]);
+        }
+        
+        if (config.order !== 'none') {
+            const indices = sortedData.map((_, i) => i).sort((a, b) => 
+                config.order === 'desc' ? sortedData[b] - sortedData[a] : sortedData[a] - sortedData[b]
+            );
+            sortedLabels = indices.map(i => labels[i]);
+            sortedData = indices.map(i => data[i]);
+        }
+        
+        sortedLabels = sortedLabels.slice(0, config.limit);
+        sortedData = sortedData.slice(0, config.limit);
+        
+        let colors = [...config.colors];
+        while (colors.length < sortedData.length) {
+            colors = [...colors, ...colors];
+        }
+        colors = colors.slice(0, sortedData.length);
+        
+        if (config.transparency < 100) {
+            colors = colors.map(c => this.addAlpha(c, config.transparency / 100));
+        }
+        
+        const chartType = config.type;
+        
+        chart.config.type = chartType;
+        
+        chart.data.labels = sortedLabels;
+        chart.data.datasets[0].data = sortedData;
+        chart.data.datasets[0].backgroundColor = chartType === 'line' ? 'transparent' : colors;
+        chart.data.datasets[0].borderColor = chartType === 'line' ? colors[0] : colors;
+        
+        chart.options.indexAxis = config.orientation === 'horizontal' ? 'y' : 'x';
+        
+        if (chart.options.plugins?.legend) {
+            chart.options.plugins.legend.display = config.showLegend;
+            chart.options.plugins.legend.position = config.legendPos || 'bottom';
+        }
+        
+        if (chart.options.plugins?.tooltip) {
+            chart.options.plugins.tooltip.enabled = config.interactive !== false;
+        }
+        
+        const isBarChart = ['bar', 'line'].includes(chartType);
+        if (isBarChart) {
+            if (chart.options.scales?.x) {
+                chart.options.scales.x.display = config.xShow !== false;
+                chart.options.scales.x.grid.display = config.xGrid !== false;
+            }
+            if (chart.options.scales?.y) {
+                chart.options.scales.y.display = config.yShow !== false;
+                chart.options.scales.y.grid.display = config.yGrid !== false;
+                chart.options.scales.y.beginAtZero = config.yBeginZero !== false;
+            }
+        }
+        
+        chart.update();
+    }
+    
+    resetConfiguration() {
+        if (!this.currentChartId) return;
+        this.chartConfigs.delete(this.currentChartId);
+        this.loadConfigToModal({ ...this.defaultConfig });
     }
 }
 
@@ -1312,10 +1930,16 @@ class ReportesManager {
     }
 
     async load() {
-        this.dashboardManager.loadStats();
-        this.dashboardManager.loadProductosPorMarca();
-        this.dashboardManager.loadProductosPorIndustria();
-        this.dashboardManager.loadVentasPorFecha();
+        await this.dashboardManager.loadStats();
+        await this.dashboardManager.loadVentasPorCategoria();
+        await this.dashboardManager.loadVentasMensuales();
+        await this.dashboardManager.loadVentasSucursal();
+        await this.dashboardManager.loadProductosPorMarca();
+        await this.dashboardManager.loadProductosPorIndustria();
+        await this.dashboardManager.loadVentasPorFecha();
+        await this.dashboardManager.loadTopClientesChart();
+        await this.dashboardManager.loadTopClientes5Chart();
+        await this.dashboardManager.loadUltimasVentas();
     }
 }
 
@@ -1354,10 +1978,12 @@ class App {
 
     navigateTo(page) {
         document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        document.querySelector(`[data-page="${page}"]`).classList.add('active');
+        const navLink = document.querySelector(`[data-page="${page}"]`);
+        if (navLink) navLink.classList.add('active');
 
         document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
-        document.getElementById(`page-${page}`).classList.add('active');
+        const pageEl = document.getElementById(`page-${page}`);
+        if (pageEl) pageEl.classList.add('active');
 
         const titles = {
             dashboard: 'Dashboard',
@@ -1737,7 +2363,9 @@ class SucursalesManager {
 
 const api = new APIClient('http://localhost:8090/api');
 const app = new App();
-const dashboardManager = new DashboardManager(api);
+const chartConfigManager = new ChartConfigManager(null);
+const dashboardManager = new DashboardManager(api, chartConfigManager);
+chartConfigManager.dashboardManager = dashboardManager;
 const productosManager = new ProductosManager(api);
 const industriasManager = new IndustriasManager(api);
 const categoriasManager = new CategoriasManager(api);
